@@ -20,7 +20,7 @@ Bu sozlesme su baseline icin gecerlidir:
 
 Beklenen kullanim:
 
-1. `agc_fixed_runtime_init(&runtime, sample_rate_hz);`
+1. `agc_fixed_runtime_init(&runtime, sample_rate_hz, target_rms_percent, max_gain_db);`
 2. `frame_samples = agc_fixed_runtime_frame_samples(&runtime);`
 3. Her cagrida tam bir frame ver:
    - `agc_fixed_runtime_process(&runtime, input_frame, output_frame, metrics);`
@@ -47,9 +47,18 @@ Beklenen kullanim:
 
 ## Parametre Sozlesmesi
 
+- `target_rms_percent` init sirasinda verilir
+- `max_gain_db` init sirasinda verilir
 - Kullanici parametreleri runtime sirasinda degismez
 - Bu baseline'da parametreler init-sonrasi sabit kabul edilir
 - Parametre guncelleme ihtiyaci dogarsa, yeni bir runtime instance veya acik bir reconfigure akisi tasarlanmalidir
+
+Ornek:
+
+- `target_rms_percent = 42`
+- `max_gain_db = 12`
+
+Bu degerler init icinde fixed-point formata cevrilir.
 
 ## Metrics Sozlesmesi
 
@@ -87,3 +96,33 @@ Bu baseline'da daha ayrintili hata kodu yoktur; sadece basit kabul/red modeli va
 - runtime parametre guncelleme
 - stereo/cok kanalli akis
 - parca frame veya overlap-akis
+
+## Buffered Frame Window API
+
+Bu baseline'a ek olarak kismi input bloklarini biriktiren ikinci bir runtime arayuzu eklendi:
+
+- `agc_fixed_runtime_buffered_samples(...)`
+- `agc_fixed_runtime_process_buffered(...)`
+- `agc_fixed_runtime_process_sample(...)`
+
+AmaÃ§:
+
+- ISR/DMA veya ust katmandan gelen parca bloklari kabul etmek
+- Bir tam AGC frame'i dolana kadar input'u ic tamponda biriktirmek
+- Tam frame hazir oldugunda ayni cekirdegi kullanarak tek frame uretmek
+
+Temel kurallar:
+
+- Bir cagrida en fazla bir frame uretilir
+- `consumed_samples`, input'tan ne kadarinin ic pencereye kopyalandigini soyler
+- `frame_ready == 1` olmadan `output_frame` gecerli kabul edilmemelidir
+- Buyuk bir input chunk'i varsa cagiran taraf `consumed_samples` ile dongu kurmalidir
+- Bu API ek algoritmik look-ahead getirmez; sadece tam frame tamamlanana kadar ornek biriktirir
+
+Sample-by-sample API:
+
+- Her cagrida bir input sample alir
+- Her cagrida bir output sample verir
+- Ic tarafta frame toplar ve frame bazli AGC cekirdigini kullanir
+- Ilk frame tamamlanana kadar output sifir gelir
+- Yaklasik bir frame gecikme pahasina sample-in/sample-out entegrasyon kolayligi saglar

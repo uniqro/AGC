@@ -154,3 +154,7 @@ Mevcut fixed-point durum artik baseline olarak sabitlendi:
 Cagiran taraf sozlesmesi de ayri dokumanda sabitlendi:
 
 - bkz. `docs/agc-c54x-runtime-contract.md`
+
+Kaynak ve cycle tahmini de ayri notta toplandi:
+
+- bkz. `docs/agc-c54x-resource-estimate.md`

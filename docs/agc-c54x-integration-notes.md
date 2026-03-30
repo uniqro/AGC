@@ -118,3 +118,7 @@ Mevcut durum:
 Runtime kullanim beklentisi ayri dokumanda sabitlendi:
 
 - `docs/agc-c54x-runtime-contract.md`
+
+Kaynak ve cycle tahmini de ayri dokumanda toplandi:
+
+- `docs/agc-c54x-resource-estimate.md`

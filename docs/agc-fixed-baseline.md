@@ -26,6 +26,9 @@ Bu dosya, mevcut fixed-point DSP baseline'ini sabitler.
 - Giris/cikis `int16`
 - Frame uzunlugu sabit
 - Metrics derleme anahtari ile kapatilabilir
+- `target_rms_percent` ve `max_gain_db` runtime init arayuzunden verilebilir
+- Tam-frame API yaninda parca input biriktiren buffered runtime arayuzu da bulunur
+- Buna ek olarak tek-sample giris/cikis yapan streaming runtime arayuzu da bulunur
 - Hedefe ozel bellek/derleyici hook'lari bu asamada baseline'a dahil degil
 
 ## Reference Uyum Ozeti

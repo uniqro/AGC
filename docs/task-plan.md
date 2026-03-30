@@ -113,6 +113,7 @@ Bu dosya, proje icin aktif gorev planini ve karar odakli ilerleme sirasini tutar
 - Q15 davranis ayrintilari, gain/cikis saturation stratejisi ve 4 ms frame'in farkli ornekleme hizlarinda olcekleme ayrintilari.
 - DSP entegrasyon yapisi net olmadigi icin arayuz kararlarinin gecikmesi.
 - Fixed peak protector davranisinin reference'a gore ozellikle `burst/step` testlerinde fazla agresif kalma riski.
+- DSP cycle ve RAM butcesinin gercek C54x build olmadan ancak tahmini olarak bilinmesi.
 
 ## Guncelleme Gecmisi
 
@@ -139,3 +140,4 @@ Bu dosya, proje icin aktif gorev planini ve karar odakli ilerleme sirasini tutar
 - Filtre blogu AGC pipeline'indan ayrildi; bagimsiz on isleme olarak yeniden konumlandi.
 - Tek bir step vektorune gore `max_gain` kisma yerine, peak-headroom cap ile daha genellenebilir step korumasi referansa eklendi.
 - Fixed cekirdekte `size_t` yerine `agc_frame_count_t` kullanimi baslatildi ve DSP-facing arayuz daraltildi.
+- C54x icin RAM/cycle tahmini ayri teknik notta toplandi.

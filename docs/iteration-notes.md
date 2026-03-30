@@ -1277,3 +1277,112 @@ Bu dosya, iterasyon bazli calisma notlarini ve ozetleri tutar.
 
 ### Sonraki Adim
 - Bu sozlesme ustunden DMA/ISR veya gercek C54x task/callback baglamini tanimlamak.
+
+## Iteration 052 - Runtime Init Parametrelerini Acma
+
+### Tarih
+- 2026-03-30
+
+### Bu iterasyonda yapilanlar
+- `agc_fixed_runtime_init(...)` arayuzune `target_rms_q15` ve `max_gain_q20` eklendi.
+- Init sirasinda default config olusturulup bu iki alan disaridan override edilir hale geldi.
+
+### Ozet
+- Fixed runtime artik iki temel kullanici parametresini init aninda disaridan alabiliyor.
+- Float kullanmadan, fixed-point tipleriyle kontrol korunuyor.
+
+### Sonraki Adim
+- Gerekirse ayni yaklasimla `gate_threshold_q15` gibi ikinci seviye parametrelerin init/config yolundan nasil acilacagini belirlemek.
+
+## Iteration 053 - Runtime Init'i Kullanici Dostu Hale Getirme
+
+### Tarih
+- 2026-03-30
+
+### Bu iterasyonda yapilanlar
+- `agc_fixed_runtime_init(...)` arayuzu `Q15/Q20` yerine kullanici dostu tam sayi parametreler alacak sekilde guncellendi.
+- Yeni girisler:
+  - `target_rms_percent`
+  - `max_gain_x100`
+- Init icinde bu degerler fixed-point formata cevriliyor.
+
+### Ozet
+- Cagiran tarafin `Q15` ve `Q12.20` ayrintilarini bilmesi artik gerekmiyor.
+- Ic fixed-point tasarim korunurken, ust arayuz daha okunur hale geldi.
+
+### Sonraki Adim
+- Gerekirse `gate_threshold` gibi diger parametreler icin de benzer kullanici dostu giris modeli tanimlamak.
+
+## Iteration 054 - Max Gain'i dB Arayuzune Tasima
+
+### Tarih
+- 2026-03-30
+
+### Bu iterasyonda yapilanlar
+- `agc_fixed_runtime_init(...)` icindeki `max_gain` girisi `max_gain_db` olarak sadeleştirildi.
+- Ic tarafta tam sayi tabanli dB->Q20 donusumu korunarak kullanici arayuzu basitleştirildi.
+
+### Ozet
+- Cagiran taraf artik dogrudan dB cinsinden tam sayi deger verebiliyor.
+- Ic fixed-point yol korunuyor; runtime float kullanilmiyor.
+
+### Sonraki Adim
+- Gerekirse benzer kullanici dostu dB/yuzde arayuzleri diger parametrelere de acmak.
+
+## Iteration 055 - Frame Window Buffered Runtime Arayuzu
+
+### Tarih
+- 2026-03-30
+
+### Bu iterasyonda yapilanlar
+- `AgcFixedRuntime` icine kismi input orneklerini biriktiren ic pencere tamponu eklendi.
+- `agc_fixed_runtime_buffered_samples(...)` ile buffered doluluk izlenebilir hale geldi.
+- `agc_fixed_runtime_process_buffered(...)` eklendi.
+- Yeni arayuz, parca input bloklarini toplayip tam frame oldugunda mevcut fixed pipeline'i calistirir.
+
+### Ozet
+- Algoritma davranisi degismedi.
+- Bu adim, entegrasyon tarafinda tam frame zorunlulugunu yumusatti.
+- ISR/DMA benzeri parca veri akislari icin daha kullanisli bir runtime katmani saglandi.
+
+### Sonraki Adim
+- Gerekirse buffered API icin kucuk bir kullanim ornegi veya test harness eklemek.
+
+## Iteration 056 - Sample-In Sample-Out Runtime Arayuzu
+
+### Tarih
+- 2026-03-30
+
+### Bu iterasyonda yapilanlar
+- `AgcFixedRuntime` icine output pencere tamponu eklendi.
+- `agc_fixed_runtime_process_sample(...)` eklendi.
+- Yeni arayuz, her cagrida bir input sample alip bir output sample verirken icerde frame bazli AGC cekirdigini korur.
+
+### Ozet
+- Algoritma davranisi degismedi.
+- Bu adim, sample tabanli entegrasyon isteyen cagiran taraflar icin kullanimi kolaylastirdi.
+- Bunun karsiliginda yaklasik bir frame gecikme bilincli olarak kabul edildi.
+
+### Sonraki Adim
+- Gerekirse sample API icin kucuk bir kullanim ornegi veya hafif bir regresyon testi eklemek.
+
+## Iteration 057 - C54x Kaynak ve Cycle Tahmini
+
+### Tarih
+- 2026-03-30
+
+### Bu iterasyonda yapilanlar
+- Fixed baseline icin RAM, latency ve cycle tahmini ayri teknik notta toplandi.
+- `agc_fixed_runtime_process_sample(...)` icin ortalama ve en kotu durum maliyetleri kabaca hesaplandi.
+- Bu hesaplarin exact degil, statik tahmin oldugu acikca ayristirildi.
+
+### Uretilen Dokuman
+- `docs/agc-c54x-resource-estimate.md`
+
+### Ozet
+- Sample API icin etkin gecikme yaklasik bir frame yani `4 ms` olarak kaydedildi.
+- Runtime RAM maliyeti icin `66 + 10N byte` yaklasimi not edildi.
+- `16 kHz` icin ortalama sample maliyeti yaklasik `50-67 cycle/sample` bandinda tutuldu.
+
+### Sonraki Adim
+- Gercek C54x build alindiginda detector ve square-root maliyetini assembly/listing uzerinden dogrulamak.
