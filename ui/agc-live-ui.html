@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGC Live UI</title>
+  <link rel="stylesheet" href="./agc-live-ui.css">
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <h1>AGC Live Test UI</h1>
+      <p>
+        Browser tabanli canli test ortami. Mikrofonu alip AGC uygular,
+        sonucu kulakliga verir, parametreleri oynatmana ve akisi gormene izin verir.
+      </p>
+      <div class="hero-note">Kulaklik kullan. Hoparlor ile test acoustic feedback yaratabilir.</div>
+    </section>
+
+    <div class="layout">
+      <section class="panel controls">
+        <div class="toolbar">
+          <button id="startButton" class="primary">Start</button>
+          <button id="stopButton" class="ghost" disabled>Stop</button>
+          <button id="resetButton" class="ghost">Reset Params</button>
+        </div>
+
+        <div class="control-group">
+          <h3>Audio IO</h3>
+          <div class="row"><label for="inputDevice">Input device</label><select id="inputDevice"></select></div>
+          <div class="row"><label for="outputDevice">Output device</label><select id="outputDevice"></select></div>
+          <div class="toggle-row"><label for="agcEnabled">AGC enabled</label><input id="agcEnabled" type="checkbox" checked></div>
+          <div class="toggle-row"><label for="monitorEnabled">Output monitor</label><input id="monitorEnabled" type="checkbox" checked></div>
+          <div class="toggle-row"><label for="compressorEnabled">Compressor</label><input id="compressorEnabled" type="checkbox"></div>
+        </div>
+
+        <div class="control-group">
+          <h3>AGC</h3>
+          <div class="row"><label for="targetRms">Target RMS</label><span class="value" id="targetRmsValue"></span></div>
+          <input id="targetRms" type="range" min="10" max="80" step="1" value="42">
+          <div class="row"><label for="maxGainDb">Max gain</label><span class="value" id="maxGainDbValue"></span></div>
+          <input id="maxGainDb" type="range" min="0" max="24" step="1" value="12">
+          <div class="row"><label for="gateThreshold">Gate threshold</label><span class="value" id="gateThresholdValue"></span></div>
+          <input id="gateThreshold" type="range" min="0" max="30" step="1" value="5">
+          <div class="row"><label for="gateHoldMs">Gate hold</label><span class="value" id="gateHoldMsValue"></span></div>
+          <input id="gateHoldMs" type="range" min="0" max="300" step="10" value="80">
+        </div>
+
+        <div class="control-group">
+          <h3>Timing</h3>
+          <div class="row"><label for="attackMs">Attack</label><span class="value" id="attackMsValue"></span></div>
+          <input id="attackMs" type="range" min="1" max="50" step="1" value="8">
+          <div class="row"><label for="releaseMs">Release</label><span class="value" id="releaseMsValue"></span></div>
+          <input id="releaseMs" type="range" min="50" max="800" step="10" value="300">
+          <div class="row"><label for="envelopeWindowMs">Envelope window</label><span class="value" id="envelopeWindowMsValue"></span></div>
+          <input id="envelopeWindowMs" type="range" min="1" max="40" step="1" value="4">
+          <div class="row"><label for="rmsWindowMs">RMS window</label><span class="value" id="rmsWindowMsValue"></span></div>
+          <input id="rmsWindowMs" type="range" min="2" max="80" step="1" value="8">
+        </div>
+
+        <div class="control-group">
+          <h3>Protection</h3>
+          <div class="row"><label for="peakProtectorRatio">Peak protector ratio</label><span class="value" id="peakProtectorRatioValue"></span></div>
+          <input id="peakProtectorRatio" type="range" min="80" max="100" step="1" value="97">
+          <div class="row"><label for="limiterThreshold">Limiter threshold</label><span class="value" id="limiterThresholdValue"></span></div>
+          <input id="limiterThreshold" type="range" min="70" max="100" step="1" value="98">
+        </div>
+
+        <div class="control-group">
+          <h3>Compressor</h3>
+          <div class="row"><label for="compressorThresholdDb">Threshold</label><span class="value" id="compressorThresholdDbValue"></span></div>
+          <input id="compressorThresholdDb" type="range" min="-36" max="-1" step="1" value="-12">
+          <div class="row"><label for="compressorRatio">Ratio</label><span class="value" id="compressorRatioValue"></span></div>
+          <input id="compressorRatio" type="range" min="1" max="12" step="0.5" value="3">
+        </div>
+
+        <div class="status" id="statusBox">Ready. Start ile mikrofon izni isteyip canli testi baslatabilirsin.</div>
+      </section>
+
+      <section class="visuals">
+        <div class="panel meters">
+          <div class="meter-box">
+            <div class="meter-title"><span>Input</span><span id="inputState">idle</span></div>
+            <div class="bar"><span id="inputPeakBar"></span></div>
+            <div class="bar"><span id="inputRmsBar"></span></div>
+            <div class="stats">
+              <div>Peak</div><strong id="inputPeakText">0.000</strong>
+              <div>RMS</div><strong id="inputRmsText">0.000</strong>
+            </div>
+          </div>
+
+          <div class="meter-box">
+            <div class="meter-title"><span>Output</span><span id="outputState">idle</span></div>
+            <div class="bar"><span id="outputPeakBar"></span></div>
+            <div class="bar"><span id="outputRmsBar"></span></div>
+            <div class="stats">
+              <div>Peak</div><strong id="outputPeakText">0.000</strong>
+              <div>RMS</div><strong id="outputRmsText">0.000</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel flow">
+          <div class="flow-card">
+            <h2>Signal Flow</h2>
+            <div class="stats">
+              <div>Envelope</div><strong id="flowEnvelope">0.000</strong>
+              <div>Smoothed RMS</div><strong id="flowRms">0.000</strong>
+              <div>Desired gain</div><strong id="flowDesiredGain">1.00x</strong>
+              <div>Applied gain</div><strong id="flowAppliedGain">1.00x</strong>
+              <div>AGC mode</div><strong id="flowAgcMode">enabled</strong>
+              <div>Peak protector</div><strong id="flowPeakProtector">off</strong>
+              <div>Limiter</div><strong id="flowLimiter">off</strong>
+            </div>
+            <div class="flow-chain">
+              <span class="chip active">Input</span>
+              <span class="chip active">Gate</span>
+              <span class="chip active" id="chipAgc">AGC</span>
+              <span class="chip" id="chipCompressor">Compressor</span>
+              <span class="chip active">Peak Protector</span>
+              <span class="chip active">Limiter</span>
+              <span class="chip active">Output</span>
+            </div>
+            <div class="footer-note">
+              Bu UI masaustu test araci olarak dusunuldu. Fixed DSP baseline ile ayni blok mantigini tasir ama bit-exact degildir.
+            </div>
+          </div>
+        </div>
+
+        <div class="panel waveform-panel">
+          <div class="waveform-header">
+            <h2>Waveform View</h2>
+            <button id="recordButton" class="record-button" disabled>Record</button>
+          </div>
+          <div class="control-group">
+            <div class="row">
+              <label for="scopeWidth">Scope width</label>
+              <span class="value" id="scopeWidthValue"></span>
+            </div>
+            <input id="scopeWidth" type="range" min="360" max="1200" step="20" value="560">
+
+            <div class="row">
+              <label for="scopeHeight">Scope height</label>
+              <span class="value" id="scopeHeightValue"></span>
+            </div>
+            <input id="scopeHeight" type="range" min="140" max="420" step="10" value="180">
+          </div>
+
+          <div class="control-group">
+            <div class="row">
+              <label for="scopeWindowSelect">Waveform window</label>
+              <select id="scopeWindowSelect">
+                <option value="10">10 ms</option>
+                <option value="100">100 ms</option>
+                <option value="500">500 ms</option>
+                <option value="1000">1 s</option>
+                <option value="2000">2 s</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="scope">
+            <div class="scope-title">
+              <span>Input Waveform</span>
+              <span class="scope-size-readout" id="scopeSizeReadout">560 x 180 | 10 ms</span>
+            </div>
+            <canvas id="inputScope" width="560" height="180"></canvas>
+          </div>
+
+          <div class="scope">
+            <div class="scope-title">
+              <span>Output Waveform</span>
+              <span class="scope-size-readout" id="scopeWindowReadout">10 ms</span>
+            </div>
+            <canvas id="outputScope" width="560" height="180"></canvas>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="./agc-live-ui.js"></script>
+</body>
+</html>

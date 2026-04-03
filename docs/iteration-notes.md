@@ -1386,3 +1386,213 @@ Bu dosya, iterasyon bazli calisma notlarini ve ozetleri tutar.
 
 ### Sonraki Adim
 - Gercek C54x build alindiginda detector ve square-root maliyetini assembly/listing uzerinden dogrulamak.
+
+## Iteration 058 - Windows Canli Loopback Test Araci
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- `tools/agc_live_loopback_winmm.c` eklendi.
+- Windows `waveIn/waveOut` tabanli canli loopback test araci olusturuldu.
+- Arac, default capture cihazindan aldigi sesi mevcut fixed AGC cekirdeginden gecirip default output cihazina verir.
+- Kullanim ve derleme notu ayri dokumanda sabitlendi.
+
+### Uretilen Dokuman
+- `docs/agc-live-loopback-test.md`
+
+### Ozet
+- Algoritma degistirilmedi.
+- Kulaklik ile gercek zamanli dinleme testi yapmak icin dusuk riskli bir yerel arac eklendi.
+- Bu arac DSP entegrasyonunun kendisi degil, masaustu dogrulama yardimcisidir.
+
+### Sonraki Adim
+- Gerekirse arac icine cihaz secimi, meter veya WAV kayit secenegi eklemek.
+
+## Iteration 059 - Canli Loopback Aracini Genisletme
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- Canli loopback aracina cihaz listeleme ve secme eklendi.
+- Console uzerine input/output peak meter eklendi.
+- Input ve output akisini ayni anda WAV olarak kaydetme secenegi eklendi.
+
+### Ozet
+- Algoritma degismedi.
+- Canli test araci artik sadece dinleme degil, gozlemleme ve kayit alma amacina da hizmet ediyor.
+- Masaustu tuning ve kulakla karsilastirma icin daha kullanisli hale geldi.
+
+### Sonraki Adim
+- Gerekirse araca daha net cihaz isimleri, meter averaging veya otomatik dosya adlandirma eklemek.
+
+## Iteration 060 - Browser Tabanli AGC Test UI
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- `ui/agc-live-ui.html`, `ui/agc-live-ui.css` ve `ui/agc-live-ui.js` eklendi.
+- Tarayicida calisan canli AGC test arayuzu olusturuldu.
+- Parametre secimi, input/output meter, waveform goruntuleme ve signal flow degerleri eklendi.
+- Opsiyonel compressor denemesi de ayni UI icinde acilip kapatilabilir hale getirildi.
+
+### Uretilen Dokuman
+- `docs/agc-web-ui-test.md`
+
+### Ozet
+- Bu adim C tabanli test aracina alternatif, daha zengin bir masaustu deney ortami sagladi.
+- UI davranis olarak mevcut AGC blok mantigini takip eder ama DSP fixed baseline ile bit-exact degildir.
+- Hedefi hizli tuning, kulakla degerlendirme ve gorunsel gozlemdir.
+
+### Sonraki Adim
+- Gerekirse UI icine preset kaydetme, parametre export veya WAV import eklemek.
+
+## Iteration 061 - Waveform Boyut Kontrolu
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- Browser UI icine waveform width ve height slider'lari eklendi.
+- Input ve output scope canvas boyutu canli olarak degistirilebilir hale geldi.
+- Scope basligina aktif boyut bilgisi eklendi.
+
+### Ozet
+- Algoritma degismedi.
+- Bu adim, burst ve patlama gibi durumlari daha rahat gorsel inceleme amaciyla yapildi.
+- Kullanici artik waveform gorunumunu daha buyuk alana yayarak detayli inceleyebilir.
+
+### Sonraki Adim
+- Gerekirse zaman ekseni zoom veya frozen capture ozelligi eklemek.
+
+## Iteration 062 - Coklu Zaman Pencereli Waveform Gorunumu
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- Input ve output waveform alanlari alt alta duzenlendi.
+- History tabanli waveform cizimi eklendi.
+- `10 ms`, `100 ms`, `500 ms`, `1 s` ve `2 s` zaman pencereleri ayni anda gorulebilir hale geldi.
+- Scope width kontrolu butun waveform canvas'larinda gercek genislik degisimi yapacak sekilde duzeltildi.
+
+### Ozet
+- Algoritma degismedi.
+- Bu adim, burst ve patlama davranisini hem kisa hem uzun olcekte ayni anda incelemeyi kolaylastirdi.
+- Input/output karsilastirmasi artik daha okunur hale geldi.
+
+### Sonraki Adim
+- Gerekirse frozen capture, trigger veya belirli bir burst anini dondurma ozelligi eklemek.
+
+## Iteration 064 - Tek Aktif Waveform Penceresi
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- Birden cok waveform penceresi ayni anda gosterilmek yerine tek aktif pencere modeline gecildi.
+- `10 ms`, `100 ms`, `500 ms`, `1 s`, `2 s` secimi combo box ile yapilabilir hale geldi.
+- Input ve output waveform gorunumleri alt alta korunurken secili pencere uzerinden cizim yapacak sekilde sadeleştirildi.
+
+### Ozet
+- Algoritma degismedi.
+- Bu adim, ekran kalabaligini azaltti ve secili zaman olcegine daha rahat odaklanmayi sagladi.
+- Scope width sorunu da bu sade yapı ile daha tutarli hale geldi.
+
+### Sonraki Adim
+- Gerekirse freeze veya burst trigger ozelligi eklemek.
+
+## Iteration 066 - Browser UI Kayit Dugmesi
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- UI toolbar'ina `Record` dugmesi eklendi.
+- Record aktifken input ve output PCM bloklari ayri ayri biriktirilir hale geldi.
+- Kayit durduruldugunda input ve output ayri WAV dosyalari olarak indirilecek sekilde export eklendi.
+
+### Ozet
+- Algoritma degismedi.
+- Kullanici artik canli test sirasinda ayni anda hem input'u hem output'u kaydedebilir.
+- Bu, AGC faydasini sonradan kulakla ve editor uzerinde karsilastirmayi kolaylastirir.
+
+### Sonraki Adim
+- Gerekirse browser UI icinde kayit suresi, dosya adi veya otomatik tekli zip/export duzenlemek.
+
+## Iteration 067 - test_wav Batch Kosusu
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- `tools/agc_batch_wav_fixed.c` eklendi.
+- `test_wav` altindaki mono PCM16 WAV dosyalari fixed AGC ile batch olarak islenebilir hale getirildi.
+- Verilen parametrelerle toplu kosu yapildi ve output dosyalari `test_wav/agc_output` altina yazildi.
+- Sonuclar ayri dokumanda toplandi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results.md`
+
+### Ozet
+- `max_gain_db = 18`, `target_rms_percent = 80`, `gate_threshold = 5` ile kosu yapildi.
+- Bu ayar seti ozellikle daha sicak dosyalarda peak protector'a belirgin bicimde yukleniyor.
+- Limiter devreye girmeden once peak protector bircok frame'de koruma yapiyor.
+
+### Sonraki Adim
+- Gerekirse ayni seti daha muhafazakar hedef RMS ile tekrar kosup karsilastirmak.
+
+## Iteration 068 - Surumu Dondurma ve Artefact Duzeni
+
+### Tarih
+- 2026-04-03
+
+### Bu iterasyonda yapilanlar
+- Koku dağinik duran `.o` dosyalari `artifacts/objects` altina tasindi.
+- Koku dağinik duran reference ve compare WAV artefact'lari `artifacts/audio/reference` ve `artifacts/audio/compare` altina tasindi.
+- Artefact klasor yapisi icin `artifacts/README.md` eklendi.
+- Gelecekte ayni tip dosyalarin tekrar kokte birikmemesi icin root `.gitignore` eklendi.
+
+### Ozet
+- Algoritma degismedi.
+- Bu adim, mevcut iyi durumu dondurmadan once proje yapisini daha duzenli hale getirmek icin yapildi.
+- test veri seti ve ona ait batch output'lar `test_wav` altinda tutulmaya devam etti.
+
+### Sonraki Adim
+- Bu duzenli durum ustunden commit ve tag ile surumu sabitlemek.
+
+## Iteration 065 - Browser UI Stabilite Iyilestirmesi
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- Browser UI icinde `ScriptProcessorNode` blok boyu `1024` sample'a cikartildi.
+- Meter ve waveform cizimi her animation frame yerine daha seyrek guncellenecek sekilde seyreltildi.
+
+### Ozet
+- Algoritma degismedi.
+- Ama audio yolundaki underrun/cizim kaynakli glitch riski azaltildi.
+- Bunun karsiliginda browser test yolunda latency bir miktar artti.
+
+### Sonraki Adim
+- Gerekirse daha saglam cozum olarak `AudioWorklet` tabanli ses isleme yoluna gecmek.
+
+## Iteration 063 - UI Uzerinden AGC On/Off Karsilastirmasi
+
+### Tarih
+- 2026-04-02
+
+### Bu iterasyonda yapilanlar
+- Browser UI icine `AGC enabled` secimi eklendi.
+- Kapatildiginda AGC gain yolu bypass olacak sekilde isleme guncellendi.
+- Signal flow alanina AGC mode bilgisi eklendi.
+
+### Ozet
+- Bu adim, AGC'nin sagladigi farki ayni test ortami icinde dogrudan duymayi ve gormeyi kolaylastirdi.
+- Peak protector ve limiter korumasi korunurken AGC gain etkisi ac/kapa yapilabilir hale geldi.
+
+### Sonraki Adim
+- Gerekirse `limiter only`, `compressor only`, `full chain` gibi daha zengin karsilastirma preset'leri eklemek.
