@@ -1,6 +1,5 @@
 /*.o
 /compare_*.wav
 /reference_*.wav
-/agc_input_*.wav
 /agc_output_*.wav
 /tools/*.exe
