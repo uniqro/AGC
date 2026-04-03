@@ -9,6 +9,7 @@
 void agc_gain_init(GainState *state);
 float agc_compute_desired_gain(const LevelInfo *level_info,
                                int gate_open,
+                               GainState *state,
                                const AgcConfig *config);
 float agc_smooth_gain(float desired_gain,
                       int fast_rise,

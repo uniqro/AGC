@@ -1563,6 +1563,190 @@ Bu dosya, iterasyon bazli calisma notlarini ve ozetleri tutar.
 ### Sonraki Adim
 - Bu duzenli durum ustunden commit ve tag ile surumu sabitlemek.
 
+## Iteration 069 - High RMS Mimari Karari ve Ilk Reference Uygulamasi
+
+### Tarih
+- 2026-04-03
+
+### Bu iterasyonda yapilanlar
+- Yuksek RMS hedeflerinde lineerlik bozulmasini aciklayan tasarim karari dokumante edildi.
+- Reference zincire `peak-headroom aware gain cap` mantigi eklendi.
+- Reference zincire `soft-knee compressor` blogu eklendi.
+- Metrics ve state yapilari yeni bloklari yansitacak sekilde guncellendi.
+
+### Uretilen Dokuman
+- `docs/agc-high-rms-architecture-decision.md`
+
+### Ozet
+- Dondurulan baseline korunuyor.
+- Yeni zincir, `%80 RMS` gibi agresif hedeflerde peak bolgesindeki bozulmayi azaltmak icin reference tarafta denenmeye baslandi.
+- Fixed baseline bu iterasyonda degistirilmedi.
+
+### Sonraki Adim
+- Reference derleme ve kontrollu test kosulari ile yeni zincirin davranisini incelemek.
+
+## Iteration 070 - Test WAV Seti Icin V2 Batch Sonuclari
+
+### Tarih
+- 2026-04-03
+
+### Bu iterasyonda yapilanlar
+- Reference tarafta yeni `high-rms v2` zinciri icin ayri batch arac eklendi.
+- `test_wav` altindaki dort input dosya `%80 RMS`, `18 dB max gain`, `%5 gate threshold` ile tekrar islendi.
+- Yeni ciktilar eski dosyalarla karismamasi icin `agc_output_v2` altina ve `_v2` sonekli adlarla yazildi.
+- Sonuclar ayri bir batch raporunda toplandi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v2.md`
+
+### Ozet
+- `v2` zincirinde peak protector aktivasyonu sifira indi.
+- Koruma yukunun ana kismi `headroom_limited` ve `compressor` bloklarina kaydi.
+- Peak lineerligini iyilestirme yonunde dogru hareket edildi, ancak efektif RMS seviyesi onceki agresif batch'e gore daha muhafazakar kaldi.
+
+### Sonraki Adim
+- Dinleme ve waveform incelemesiyle `v2` ciktilarin subjektif etkisini degerlendirmek.
+
+## Iteration 071 - Ortalama %80 Hedefi Icin V3 Zinciri
+
+### Tarih
+- 2026-04-03
+
+### Bu iterasyonda yapilanlar
+- Erken `peak headroom cap` kapatildi.
+- `frame-level peak protector` kapatildi.
+- Yuku daha cok `soft-knee compressor + final limiter` tarafina veren yeni reference davranisi denendi.
+- `test_wav` seti bu kez `v3` cikti adlariyla tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v3.md`
+
+### Ozet
+- `v3`, `v2`'ye gore ortalama cikis seviyesini belirgin yukseltti.
+- Peak'ler `0.995` civarina kadar cikabildi.
+- Peak protector tamamen devre disi kalirken, az sayida limiter aktivasyonu goruldu.
+
+### Sonraki Adim
+- Final limiter'i daha yumusak hale getirmenin gerekli olup olmadigini waveform ve dinleme uzerinden degerlendirmek.
+
+## Iteration 072 - Soft Final Limiter Ile V4 Sonuclari
+
+### Tarih
+- 2026-04-03
+
+### Bu iterasyonda yapilanlar
+- Hard final limiter, soft saturation benzeri bir egriyle degistirildi.
+- `test_wav` seti bu kez `v4` cikti adlariyla tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v4.md`
+
+### Ozet
+- `v4`, sayisal olarak `v3`e yakin kaldi.
+- En kritik fark, limiter devreye girdiginde sert clamp yerine yumusak sinirlama uygulanmasi oldu.
+- Bu nedenle asil kazanc waveform sekli ve subjektif dinleme tarafinda bekleniyor.
+
+### Sonraki Adim
+- `v3` ve `v4` ciktilari waveform/duyusal olarak karsilastirip soft limiter egrisinin yeterli olup olmadigini kararlastirmak.
+
+## Iteration 073 - Multi-Mode Target Level Karari
+
+### Tarih
+- 2026-04-03
+
+### Bu iterasyonda yapilanlar
+- `AM` ve `DIGITAL` modlar icin ortak hedef seviye tanimi netlestirildi.
+- `target level` kavraminin iki modda da ayni kalmasi kabul edildi.
+- Hedefin olcumu olarak `RMS + gate ile konusma aktif frame'leri` secildi.
+- Mod farklarinin hedef anlaminda degil, uygulama agirliklarinda ortaya cikmasi kararlastirildi.
+
+### Uretilen Dokuman
+- `docs/agc-multi-mode-target-level-decision.md`
+
+### Ozet
+- Proje artik tek cekirdek, cok modlu AGC olarak ele alinacak.
+- `AM` ve `DIGITAL` farki, ayni hedefe farkli parametre/profil ile ulasma seklinde modellenecek.
+- Bu karar, sonraki algoritma degisiklikleri icin daha saglam bir zemin sagladi.
+
+### Sonraki Adim
+- Bu hedef tanimina uygun olarak peak-aware gain planning ve compressor rolunu mode profilleri ekseninde yeniden tasarlamak.
+
+## Iteration 074 - AM Preset'in Sabitlenmesi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Ortak cekirdekte kullanilacak ilk resmi `AM` preset tanimlandi.
+- `reference/agc_config` icine `AgcMode` ve preset secim yapisi eklendi.
+- Geriye uyumluluk icin mevcut `default` davranisi `AM` preset'e baglandi.
+- Batch reference araci mode parametresi kabul edecek sekilde guncellendi.
+
+### Uretilen Dokuman
+- `docs/agc-am-preset.md`
+
+### Ozet
+- `AM` artik soyut fikir degil, secilebilir bir profil haline geldi.
+- Bir sonraki `DIGITAL` preset icin de ayni cati hazirlandi.
+
+### Sonraki Adim
+- `AM` preset davranisini reference testleri uzerinde olgunlastirmak ve gerekirse limiter/kompresor dengesini bu profil icinde yeniden ince ayarlamak.
+
+## Iteration 075 - AM Preset Icinde `-1 dBFS` Compressor Esigi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `AM` preset icinde `compressor_threshold_dbfs = -1` yapildi.
+- Ortamda `.exe` kosma engeli oldugu icin ayni mantigi izleyen Python batch araci eklendi.
+- `test_wav` seti bu yeni ayarla `v5` ciktilari olarak tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v5.md`
+
+### Ozet
+- Ortalama seviye bir miktar yukselirken limiter yukunde ciddi artis goruldu.
+- Bu sonuc, `-1 dBFS` threshold'un AM preset icin fazla gec frenledigini gosteriyor.
+
+### Sonraki Adim
+- AM preset'te compressor threshold/ratio dengesini limiter yukunu azaltacak sekilde yeniden incelemek.
+
+## Iteration 076 - AM Preset'te `-2 dBFS` Emegine Donus
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `AM` preset icindeki `compressor_threshold_dbfs`, `-1 dBFS` denemesinden sonra tekrar `-2 dBFS` degerine alindi.
+
+### Ozet
+- `-1 dBFS` denemesi ortalama seviyeyi biraz yukseltti, ancak limiter yukunu ciddi bicimde artirdi.
+- Bu nedenle AM preset icin daha dengeli onceki esige geri donuldu.
+
+### Sonraki Adim
+- Gerekirse `-2 dBFS` temelinde `ratio` ve `knee` tarafini yeniden incelemek.
+
+## Iteration 077 - Yeni AM Reference Zincirini Dondurma
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Yeni reference AGC zinciri icin ayri bir freeze dokumani eklendi.
+- `AM` preset, `target level` karari ve batch sonuc dokumanlari tek freeze catisi altinda toplandi.
+- Son kabul edilen `AM` compressor esigi tekrar `-2 dBFS` durumunda birakildi.
+
+### Uretilen Dokuman
+- `docs/agc-am-reference-freeze.md`
+
+### Ozet
+- Eski baseline korunurken, yeni cok-modlu reference yon de ayri bir dondurma noktasi olarak sabitlendi.
+- Bundan sonraki uygulama adimlari bu freeze noktasini temel alabilir.
+
+### Sonraki Adim
+- Bu dondurulan reference davranisindan hareketle uygulama/DSP uyarlama adimlarini baslatmak.
+
 ## Iteration 065 - Browser UI Stabilite Iyilestirmesi
 
 ### Tarih

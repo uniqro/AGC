@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "agc_compressor.h"
 #include "agc_gate.h"
 #include "agc_gain_control.h"
 #include "agc_level_detector.h"
@@ -15,6 +16,7 @@ void agc_pipeline_init(PipelineState *state) {
     agc_level_detector_init(&state->detector);
     agc_gate_init(&state->gate);
     agc_gain_init(&state->gain);
+    agc_compressor_init(&state->compressor);
     agc_peak_protector_init(&state->peak_protector);
     agc_limiter_init(&state->limiter);
 }
@@ -44,10 +46,11 @@ void agc_process_frame(const float *input,
     previous_gate_open = state->gate.is_open;
     level_info = agc_measure_level(input, input, frame_samples, &state->detector, config);
     gate_open = agc_update_gate(&level_info, &state->gate, config);
-    desired_gain = agc_compute_desired_gain(&level_info, gate_open, config);
+    desired_gain = agc_compute_desired_gain(&level_info, gate_open, &state->gain, config);
     fast_rise = (!previous_gate_open && gate_open && desired_gain > state->gain.applied_gain);
     applied_gain = agc_smooth_gain(desired_gain, fast_rise, &state->gain, config);
     agc_apply_gain(input, gained, frame_samples, applied_gain, &state->gain);
+    agc_apply_compressor(gained, frame_samples, &state->compressor, config);
     agc_apply_peak_protector(gained, frame_samples, &state->peak_protector, config);
     agc_apply_limiter(gained, frame_samples, &state->limiter, config);
 
@@ -68,6 +71,7 @@ void agc_process_frame(const float *input,
         *metrics = agc_collect_metrics(&level_info,
                                        gate_open,
                                        &state->gain,
+                                       &state->compressor,
                                        &state->peak_protector,
                                        &state->limiter,
                                        output_peak,

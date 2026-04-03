@@ -19,8 +19,14 @@ typedef struct DetectorState {
 typedef struct GainState {
     float desired_gain;
     float applied_gain;
+    int headroom_limited;
     int overflow_detected;
 } GainState;
+
+typedef struct CompressorState {
+    int is_active;
+    float max_gain_reduction_db;
+} CompressorState;
 
 typedef struct LimiterState {
     int is_active;
@@ -36,6 +42,7 @@ typedef struct PipelineState {
     DetectorState detector;
     GateState gate;
     GainState gain;
+    CompressorState compressor;
     PeakProtectorState peak_protector;
     LimiterState limiter;
     uint64_t frame_index;
@@ -59,6 +66,9 @@ typedef struct FrameMetrics {
     int gate_open;
     float desired_gain;
     float applied_gain;
+    int headroom_limited;
+    int compressor_active;
+    float compressor_gain_reduction_db;
     int peak_protector_active;
     float peak_protector_scale;
     int limiter_active;

@@ -19,6 +19,10 @@ void agc_apply_peak_protector(float *frame,
     state->is_active = 0;
     state->applied_scale = 1.0f;
 
+    if (!config->peak_protector_enabled) {
+        return;
+    }
+
     for (i = 0; i < frame_samples; ++i) {
         float abs_value = fabsf(frame[i]);
         if (abs_value > peak) {

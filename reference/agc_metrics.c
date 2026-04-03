@@ -5,6 +5,7 @@
 FrameMetrics agc_collect_metrics(const LevelInfo *level_info,
                                  int gate_open,
                                  const GainState *gain_state,
+                                 const CompressorState *compressor_state,
                                  const PeakProtectorState *peak_protector_state,
                                  const LimiterState *limiter_state,
                                  float output_peak,
@@ -20,6 +21,9 @@ FrameMetrics agc_collect_metrics(const LevelInfo *level_info,
     metrics.gate_open = gate_open;
     metrics.desired_gain = gain_state->desired_gain;
     metrics.applied_gain = gain_state->applied_gain;
+    metrics.headroom_limited = gain_state->headroom_limited;
+    metrics.compressor_active = compressor_state->is_active;
+    metrics.compressor_gain_reduction_db = compressor_state->max_gain_reduction_db;
     metrics.peak_protector_active = peak_protector_state->is_active;
     metrics.peak_protector_scale = peak_protector_state->applied_scale;
     metrics.limiter_active = limiter_state->is_active;

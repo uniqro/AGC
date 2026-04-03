@@ -21,9 +21,16 @@ void agc_gain_init(GainState *state) {
 
 float agc_compute_desired_gain(const LevelInfo *level_info,
                                int gate_open,
+                               GainState *state,
                                const AgcConfig *config) {
     float level;
     float gain;
+    float headroom_capped_gain = config->max_gain;
+    float safe_peak = config->limiter_threshold *
+                      config->peak_protector_ratio *
+                      config->gain_headroom_margin;
+
+    state->headroom_limited = 0;
 
     if (!gate_open) {
         return 1.0f;
@@ -35,6 +42,13 @@ float agc_compute_desired_gain(const LevelInfo *level_info,
     }
 
     gain = config->target_rms_fs / level;
+    if (config->peak_headroom_cap_enabled && level_info->input_peak > 1.0e-6f) {
+        headroom_capped_gain = safe_peak / level_info->input_peak;
+        if (headroom_capped_gain < gain) {
+            gain = headroom_capped_gain;
+            state->headroom_limited = 1;
+        }
+    }
     if (gain > config->max_gain) {
         gain = config->max_gain;
     }

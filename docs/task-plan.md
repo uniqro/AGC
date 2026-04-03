@@ -114,6 +114,7 @@ Bu dosya, proje icin aktif gorev planini ve karar odakli ilerleme sirasini tutar
 - DSP entegrasyon yapisi net olmadigi icin arayuz kararlarinin gecikmesi.
 - Fixed peak protector davranisinin reference'a gore ozellikle `burst/step` testlerinde fazla agresif kalma riski.
 - DSP cycle ve RAM butcesinin gercek C54x build olmadan ancak tahmini olarak bilinmesi.
+- Yuksek RMS hedeflerinde mevcut frame-level peak protector zincirinin lineerlik bozma riski.
 
 ## Guncelleme Gecmisi
 
@@ -141,3 +142,9 @@ Bu dosya, proje icin aktif gorev planini ve karar odakli ilerleme sirasini tutar
 - Tek bir step vektorune gore `max_gain` kisma yerine, peak-headroom cap ile daha genellenebilir step korumasi referansa eklendi.
 - Fixed cekirdekte `size_t` yerine `agc_frame_count_t` kullanimi baslatildi ve DSP-facing arayuz daraltildi.
 - C54x icin RAM/cycle tahmini ayri teknik notta toplandi.
+- Yuksek RMS hedefleri icin yeni mimari karari ayri dokumanda sabitlendi.
+- `test_wav` veri seti icin `v2` ciktilar ayri adlandirma ile uretilmeye baslandi; boylece eski batch ve yeni zincir kolayca karsilastirilabiliyor.
+- Yuksek RMS hedefi icin `v3` denemesinde erken peak frenleri kapatildi; bundan sonraki ana karar noktasi final limiter'in yumusatilip yumusatilmamasi.
+- `target level` artik `konusma aktif frame'lerde hedef RMS ortalamasi` olarak sabitlendi; `AM` ve `DIGITAL` mod farklari bu hedefin anlaminda degil, uygulanisinda tanimlanacak.
+- Ilk resmi mod profili olarak `AM` preset sabitlendi; sonraki adim, bu preset'i referans testleriyle olgunlastirmak ve `DIGITAL` preset'i ayri olarak tanimlamak.
+- Mevcut yeni reference zincir `AM` preset ile birlikte ayri bir freeze noktasi olarak sabitlendi; buradan sonra uygulama/dsp uyarlama calismalari bu noktadan dallanacak.
