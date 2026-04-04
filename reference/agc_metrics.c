@@ -21,6 +21,10 @@ FrameMetrics agc_collect_metrics(const LevelInfo *level_info,
     metrics.gate_open = gate_open;
     metrics.desired_gain = gain_state->desired_gain;
     metrics.applied_gain = gain_state->applied_gain;
+    metrics.crest_factor_db = gain_state->current_crest_factor_db;
+    metrics.smoothed_crest_factor_db = gain_state->smoothed_crest_factor_db;
+    metrics.cf_blend_weight = gain_state->cf_blend_weight;
+    metrics.crest_smoothing_active = gain_state->crest_smoothing_active;
     metrics.headroom_limited = gain_state->headroom_limited;
     metrics.compressor_active = compressor_state->is_active;
     metrics.compressor_gain_reduction_db = compressor_state->max_gain_reduction_db;

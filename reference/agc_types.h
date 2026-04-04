@@ -17,8 +17,12 @@ typedef struct DetectorState {
 } DetectorState;
 
 typedef struct GainState {
+    float current_crest_factor_db;
     float desired_gain;
     float applied_gain;
+    float smoothed_crest_factor_db;
+    float cf_blend_weight;
+    int crest_smoothing_active;
     int headroom_limited;
     int overflow_detected;
 } GainState;
@@ -66,6 +70,10 @@ typedef struct FrameMetrics {
     int gate_open;
     float desired_gain;
     float applied_gain;
+    float crest_factor_db;
+    float smoothed_crest_factor_db;
+    float cf_blend_weight;
+    int crest_smoothing_active;
     int headroom_limited;
     int compressor_active;
     float compressor_gain_reduction_db;

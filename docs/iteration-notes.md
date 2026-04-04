@@ -1747,6 +1747,330 @@ Bu dosya, iterasyon bazli calisma notlarini ve ozetleri tutar.
 ### Sonraki Adim
 - Bu dondurulan reference davranisindan hareketle uygulama/DSP uyarlama adimlarini baslatmak.
 
+## Iteration 078 - Control Sidechain HPF Ilk Denemesi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Detector yoluna `300 Hz` control sidechain HPF eklendi.
+- Bu davranis `AM` preset icinde etkinlestirildi.
+- `test_wav` seti bu yeni davranisla `v6` olarak tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v6.md`
+
+### Ozet
+- Teori dusuk frekans baskisini azaltmakti.
+- Ancak ilk denemede AGC/compressor daha fazla gain verip final limiter yukunu belirgin sekilde artirdi.
+- Bu nedenle control sidechain weighting fikri reddedilmedi, ancak ilk uygulama bicimi basarili sayilmadi.
+
+### Sonraki Adim
+- Sidechain weighting'in tamamen kaldirilmasi, yumusatilmmasi veya farkli weighting yapilarinin dusunulmesi.
+
+## Iteration 079 - Control Sidechain HPF Geri Alinmasi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Detector yoluna eklenen `300 Hz` sidechain HPF geri alindi.
+- Python batch aracindaki ayni weighting davranisi da geri alindi.
+- `AM` preset tekrar tam-band detector davranisina donduruldu.
+
+### Ozet
+- Ilk sidechain HPF denemesi limiter yukunu belirgin bicimde artirdigi icin korunmadi.
+- Bu fikir tamamen reddedilmedi; ancak bu ilk uygulama bicimiyle freeze sonrasina tasinmamasina karar verildi.
+
+### Sonraki Adim
+- Gerekirse daha hafif weighting veya farkli detector stratejileri daha kontrollu bir iterasyonda ele alinabilir.
+
+## Iteration 080 - CFAGC Ilk Uygulamasi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `CFAGC` adi altinda crest-factor-aware gain planning karari dokumante edildi.
+- `target_peak` ve `limiter_threshold` hedef formulleri kod ve batch aracina islendi.
+- `cf_low_db = 9`, `cf_high_db = 15`, `cf_smoothing_ms = 40` ile ilk deneme yapildi.
+- Compressor `AM` modunda pasif hale getirildi ve limiter sayaci ana veri olarak izlendi.
+- `test_wav` seti `v7` ciktilari ile tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/cfagc-decision.md`
+- `docs/agc-test-wav-batch-results-v7.md`
+
+### Ozet
+- Ilk CFAGC denemesinde peak-aware gain planning devreye girdi.
+- Ancak compressor olmadan limiter yukunde beklenen dusus gorulmedi.
+- Bu nedenle bir sonraki adim, CFAGC blend fonksiyonunu veya peak agirligini yeniden incelemek olacak.
+
+## Iteration 081 - CFAGC Esiklerini Veriyle Daraltma
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Test setindeki aktif-frame crest-factor dagilimi analiz edildi.
+- Limiter'a dusen frame'lerin crest-factor dagilimi ayrica incelendi.
+- Bu veriye gore `cf_low_db / cf_high_db` araligi `6.0 / 10.5` olarak guncellendi.
+- `test_wav` seti `v8` ciktilari ile tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v8.md`
+
+### Ozet
+- Yeni esikler CFAGC'yi daha erken devreye soktu.
+- Bazi sicak dosyalarda limiter yukunde iyilesme saglandi.
+- Ancak bunun bedeli RMS seviyesinin dusmesi oldu.
+
+### Sonraki Adim
+- CFAGC ile limiter yukunu azaltirken RMS'i daha iyi koruyacak yeni blend veya target_peak stratejisini incelemek.
+
+## Iteration 082 - CFAGC Convex Blend Denemesi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- CFAGC lineer blend yerine `convex (w^2)` blend ile tekrar denendi.
+- `test_wav` seti `v9` ciktilari ile tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v9.md`
+
+### Ozet
+- `v8`e gore RMS bir miktar geri kazanildi.
+- Limiter yukunde kismi geri artis olsa da `v7` kadar kotu seviyeye donulmedi.
+- Bu sonuc, blend fonksiyonunu sekillendirmenin anlamli bir tuning ekseni oldugunu gosterdi.
+
+### Sonraki Adim
+- `v9`un yeterli ara nokta olup olmadigina karar vermek veya `target_peak` tarafini bir sonraki tuning ekseni olarak ele almak.
+
+## Iteration 083 - CFAGC Log-Gain Blend Denemesi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `CFAGC` blend ayni `w^2` agirligi korunarak lineer gain alanindan log-gain alanina tasindi.
+- `target_peak` ve `limiter_threshold` formullerine dokunulmadan yalniz gain law daha korumaci hale getirildi.
+- `test_wav` seti `v10` ciktilari ile tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v10.md`
+
+### Ozet
+- Limiter yukunde kucuk ama tutarli bir dusus elde edildi.
+- RMS seviyesi `v9`a gore buyuk olcude korundu.
+- Bu sonuc, `target_peak`e gecmeden once gain law tarafinda hala kucuk ama anlamli kazanclar alinabildigini gosterdi.
+
+### Sonraki Adim
+- `v10` waveform davranisini inceleyip, gerekirse son kez gain law tarafinda bir adim daha atmak; ancak iyilesme doygunlasirsa `target_peak` eksenine gecmek.
+
+## Iteration 084 - CFAGC Target Peak Daraltma Denemesi
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `target_peak` formulu `target + (1 - target) * 4/5` yerine `target + (1 - target) * 2/5` olarak daraltildi.
+- `gain law` ve `limiter_threshold` ayni birakilarak yalniz peak hedefinin etkisi olculdu.
+- `test_wav` seti `v11` ciktilari ile tekrar islendi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v11.md`
+
+### Ozet
+- `target_peak`in daha muhafazakar hale getirilmesi limiter yukunu yalniz kucuk bir miktar azaltti.
+- RMS seviyesi de benzer olcude azaldi.
+- Bu, sorunun ana ekseninin yalniz peak hedefi degil, genel gain tasima davraniÅŸi ve final koruma etkileÅŸimi oldugunu gostermeye basladi.
+
+### Sonraki Adim
+- `v11` waveform ile `v10`/`v9` davranisini birlikte yorumlayip, compressor'un yeniden kontrollu sekilde devreye alinmasi gerekip gerekmedigine karar vermek.
+
+## Iteration 085 - Signal Debugger Araci
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- WAV girdisini frame-frame analiz edip karar izini JSON'a dokebilen `tools/agc_debug_export.py` eklendi.
+- Bu JSON'u offline inceleyen yeni UI hazirlandi:
+  - `ui/agc-debugger.html`
+  - `ui/agc-debugger.css`
+  - `ui/agc-debugger.js`
+- Whole signal, decision timeline, secili frame waveform ve karar ozeti panelleri eklendi.
+
+### Uretilen Dokuman
+- `docs/agc-signal-debugger.md`
+
+### Ozet
+- Bu arac, AGC davranisini ses dosyasi bazinda yazilim debug eder gibi incelemeyi sagliyor.
+- Limiter, headroom limit, crest factor ve gain kararlarini tek ekranda izlemek artik mumkun.
+
+### Sonraki Adim
+- Gercek sorunlu dosyalar icin debug trace ureterek `CFAGC`, limiter ve gerekirse compressor davranisini frame bazinda birlikte yorumlamak.
+
+## Iteration 086 - WAV-First Signal Debugger
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- JSON yerine dogrudan input WAV secerek calisan yeni debugger arayuzu eklendi.
+- Tarayici icinde:
+  - WAV decode
+  - reference-benzeri frame processing
+  - karar izi uretimi
+  - input/output waveform ve frame detay gosterimi
+  tek adimda yapilir hale geldi.
+- Output WAV'i dogrudan indirme secenegi eklendi.
+
+### Uretilen Dosyalar
+- `ui/agc-wav-debugger.html`
+- `ui/agc-wav-debugger.js`
+
+### Ozet
+- Artik sinyali incelemek icin once JSON export uretmek zorunlu degil.
+- En hizli debug yolu, WAV secip ayni arayuz icinde incelemek.
+
+### Sonraki Adim
+- Sorunlu WAV dosyalari uzerinde bu yeni debugger ile limiter, CFAGC ve waveform lineerligini frame bazinda birlikte yorumlamak.
+
+## Iteration 087 - Crest Smoothing Activity Floor
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- CFAGC crest smoothing guncellemesi icin `rms_activity_floor = 0.05` eklendi.
+- `smoothed crest factor` artik yalniz `gate_open` ve `smoothed_rms > 0.05` oldugunda guncelleniyor.
+- Reference C kodu, Python batch/export araclari ve WAV debugger ayni mantiga hizalandi.
+- Debugger icine `CF Update` bilgisi eklendi.
+
+### Ozet
+- Bu adim, dusuk enerjili gap ve kuyruk frame'lerinin crest smoothing state'ini kirletmesini azaltmak icin atildi.
+- Sadece `gate_open` kosulu yerine, enerji tabanli ikinci bir guvenilirlik kapisi eklenmis oldu.
+
+### Sonraki Adim
+- Bu yeni crest smoothing kuralinin limiter yukune ve peak lineerligine etkisini test WAV'lari uzerinde birlikte incelemek.
+
+## Iteration 089 - Asimetrik Crest Smoothing
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- CFAGC crest smoothing icin tek zaman sabiti yerine asimetrik zaman sabitleri tanimlandi.
+- `cf_rise_ms = 8`, `cf_fall_ms = 40` ile crest factor yukselirken hizli, duserken daha yavas takip uygulanmaya baslandi.
+- Reference C, Python batch/export ve WAV debugger ayni mantiga hizalandi.
+
+### Ozet
+- Bu adim, ani peak-dominant hecelerde `smoothed crest factor`in gercek crest factor'uun cok gerisinde kalmasi problemini azaltmak icin atildi.
+- Ama limiter yukundeki gercek etkisi test kosusuyla dogrulanmali.
+
+### Sonraki Adim
+- `test_wav` seti ile `v13` batch kosusu alip limiter sayaci, RMS ve waveform davranisini onceki surumle karsilastirmak.
+
+## Iteration 090 - Asimetrik Crest Smoothing Batch Sonuclari
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `cf_rise_ms = 8`, `cf_fall_ms = 40` ile asimetrik crest smoothing davranisi `test_wav` seti uzerinde olculdu.
+- Sonuclar `v13` ciktilari ve batch raporu ile kaydedildi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v13.md`
+
+### Ozet
+- Sicak dosyalarda limiter sayisi belirgin bicimde dustu.
+- Buna karsilik headroom-limited frame sayisi cok artti ve RMS belirgin azaldi.
+- Bu, asimetrik crest smoothing yonunun dogru oldugunu ama ilk ayarin fazla korumaci kaldigini gosteriyor.
+
+### Sonraki Adim
+- `cf_rise_ms / cf_fall_ms` dengesini biraz yumusatmak veya blend agirligini kismen geri acmak.
+
+## Iteration 091 - Headroom-Limited Frame'lerde Peak-Biased Blend
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `headroom_limited` frame'lerde CFAGC blend agirligi daha sert peak-biased hale getirildi.
+- `desired_gain`in `gain_peak`e daha cok yaklasmasi hedeflendi.
+- Sonuclar `v14` batch kosusu ile olculdu.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v14.md`
+
+### Ozet
+- Beklenen yonde, limiter sayisi belirgin bicimde azaldi.
+- Ancak RMS seviyesi AM hedefleri icin fazla duserek bu ilk peak-biased agirligin fazla sert oldugunu gosterdi.
+
+### Sonraki Adim
+- Peak-biased weight'i yumusatmak veya yalniz daha yuksek crest-factor bolgelerinde devreye girecek kosullu bir karisima gecmek.
+
+## Iteration 092 - Peak-Biased Blend'i Yumusatma
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Headroom-limited frame'lerde kullanilan peak-biased agirlik `1 - (1 - w)^4` yerine `1 - (1 - w)^3` yapildi.
+- Sonuclar `v15` batch kosusu ile olculdu.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v15.md`
+
+### Ozet
+- RMS bir miktar geri kazanildi.
+- Limiter yuku de tekrar bir miktar artti.
+- Bu da peak-biased blend ailesinin etkili oldugunu ama hala fazla agresif kaldigini gosteriyor.
+
+### Sonraki Adim
+- Weight'i daha da yumusatmak yerine yalniz daha yuksek crest-factor bolgelerinde etkinlestirilen kosullu bir peak-biased blend denemek daha verimli olabilir.
+
+## Iteration 093 - Peak-Biased Blend Yumusatmasini Geri Alma
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Son peak-biased blend yumusatmasi geri alindi.
+- CFAGC agirligi tekrar `v14`teki daha sert `1 - (1 - w)^4` davranisina donduruldu.
+- Debugger ve Python batch araci da ayni duruma hizalandi.
+
+### Ozet
+- `v15`teki yumusatma sinyali biraz toparlasa da limiter yukunu yeniden arttirdigi icin korunmadi.
+- Calisma noktasi tekrar `v14` davranisina geri alindi.
+
+### Sonraki Adim
+- Sonraki arayis, tum headroom-limited frame'lerde degil yalniz daha yuksek crest-factor bolgelerinde etkinlesen kosullu peak bias yoni olacak.
+
+## Iteration 088 - Crest Smoothing Activity Floor Batch Sonuclari
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `rms_activity_floor = 0.05` kuralinin etkisi `test_wav` seti uzerinde tekrar olculdu.
+- Sonuclar `v12` ciktilari ve ayri batch raporu ile kaydedildi.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v12.md`
+
+### Ozet
+- Crest smoothing update daha secici hale gelince `headroom_limited_frames` belirgin azaldi.
+- Buna karsilik limiter yukunde anlamli bir rahatlama gorulmedi; bazi dosyalarda limiter sayisi hafif artti.
+- RMS seviyesi ise kucuk bir miktar yukselme eglimi gosterdi.
+
+### Sonraki Adim
+- Crest update kosulunun tek basina yeterli olmadigi goruldugu icin, bir sonraki aday eksen `crest rise/fall asimetrisi` veya compressor'un kontrollu geri donusu olacaktir.
+
 ## Iteration 065 - Browser UI Stabilite Iyilestirmesi
 
 ### Tarih

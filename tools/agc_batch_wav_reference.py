@@ -21,6 +21,12 @@ class AgcConfig:
     gate_threshold: float
     max_gain: float
     gain_headroom_margin: float
+    cfagc_enabled: bool
+    cf_low_db: float
+    cf_high_db: float
+    cf_rise_ms: float
+    cf_fall_ms: float
+    rms_activity_floor: float
     peak_headroom_cap_enabled: bool
     compressor_enabled: bool
     compressor_threshold_dbfs: float
@@ -45,8 +51,12 @@ class GateState:
 
 @dataclass
 class GainState:
+    current_crest_factor_db: float = 0.0
     desired_gain: float = 1.0
     applied_gain: float = 1.0
+    smoothed_crest_factor_db: float = 0.0
+    cf_blend_weight: float = 0.0
+    crest_smoothing_active: bool = False
     headroom_limited: bool = False
     overflow_detected: bool = False
 
@@ -84,6 +94,14 @@ def db_to_linear(db: float) -> float:
     return 10.0 ** (db / 20.0)
 
 
+def target_peak_fs(target_level: float) -> float:
+    return target_level + (1.0 - target_level) * 0.4
+
+
+def limiter_threshold_fs(target_level: float) -> float:
+    return target_level + (1.0 - target_level) * 0.9
+
+
 def linear_to_db(value: float) -> float:
     if value <= 1.0e-9:
         return -180.0
@@ -106,23 +124,36 @@ def agc_config_preset(sample_rate_hz: int, mode: str) -> AgcConfig:
         gate_threshold=0.05,
         max_gain=4.0,
         gain_headroom_margin=1.0,
+        cfagc_enabled=True,
+        cf_low_db=6.0,
+        cf_high_db=10.5,
+        cf_rise_ms=8.0,
+        cf_fall_ms=40.0,
+        rms_activity_floor=0.05,
         peak_headroom_cap_enabled=False,
-        compressor_enabled=True,
-        compressor_threshold_dbfs=-1.0,
+        compressor_enabled=False,
+        compressor_threshold_dbfs=-2.0,
         compressor_ratio=6.0,
         compressor_knee_db=8.0,
         peak_protector_enabled=False,
         peak_protector_ratio=1.0,
-        limiter_threshold=0.995,
+        limiter_threshold=limiter_threshold_fs(0.42),
     )
     if config.mode == "DIGITAL":
         config.attack_ms = 10.0
         config.release_ms = 350.0
+        config.cfagc_enabled = True
+        config.cf_low_db = 6.0
+        config.cf_high_db = 10.5
+        config.cf_rise_ms = 8.0
+        config.cf_fall_ms = 40.0
+        config.rms_activity_floor = 0.05
+        config.compressor_enabled = True
         config.compressor_threshold_dbfs = -4.0
         config.compressor_ratio = 3.0
         config.compressor_knee_db = 6.0
         config.peak_headroom_cap_enabled = True
-        config.limiter_threshold = 0.990
+        config.limiter_threshold = limiter_threshold_fs(config.target_rms_fs)
     return config
 
 
@@ -224,20 +255,64 @@ def time_constant_to_alpha(time_ms: float, config: AgcConfig) -> float:
     return 1.0 - math.exp(-dt / tau)
 
 
+def smoothstep(edge0: float, edge1: float, x: float) -> float:
+    if edge1 <= edge0:
+        return 1.0 if x >= edge1 else 0.0
+    t = (x - edge0) / (edge1 - edge0)
+    if t < 0.0:
+        t = 0.0
+    elif t > 1.0:
+        t = 1.0
+    return t * t * (3.0 - 2.0 * t)
+
+
+def peak_bias_weight(blend_weight: float) -> float:
+    if blend_weight <= 0.0:
+        return 0.0
+    if blend_weight >= 1.0:
+        return 1.0
+    keep_rms = 1.0 - blend_weight
+    return 1.0 - keep_rms * keep_rms * keep_rms * keep_rms
+
+
 def compute_desired_gain(level_info, gate_open: bool, state: GainState, config: AgcConfig) -> float:
     state.headroom_limited = False
+    state.crest_smoothing_active = False
     if not gate_open:
+        state.cf_blend_weight = 0.0
         return 1.0
     level = level_info["filtered_rms"]
     if level <= 1.0e-9:
+        state.cf_blend_weight = 0.0
         return 1.0
-    gain = config.target_rms_fs / level
-    if config.peak_headroom_cap_enabled and level_info["input_peak"] > 1.0e-6:
-        safe_peak = config.limiter_threshold * config.peak_protector_ratio * config.gain_headroom_margin
-        headroom_gain = safe_peak / level_info["input_peak"]
-        if headroom_gain < gain:
-            gain = headroom_gain
-            state.headroom_limited = True
+    gain_rms = config.target_rms_fs / level
+    if level_info["input_peak"] > 1.0e-6:
+        gain_peak = target_peak_fs(config.target_rms_fs) / level_info["input_peak"]
+        crest_factor_db = linear_to_db(level_info["input_peak"] / level)
+    else:
+        gain_peak = config.max_gain
+        crest_factor_db = 0.0
+    state.current_crest_factor_db = crest_factor_db
+    crest_update_allowed = gate_open and level > config.rms_activity_floor
+    state.crest_smoothing_active = crest_update_allowed
+    if crest_update_allowed:
+        cf_alpha = time_constant_to_alpha(
+            config.cf_rise_ms if crest_factor_db > state.smoothed_crest_factor_db else config.cf_fall_ms,
+            config,
+        )
+        state.smoothed_crest_factor_db += cf_alpha * (crest_factor_db - state.smoothed_crest_factor_db)
+    blend_weight = smoothstep(config.cf_low_db, config.cf_high_db, state.smoothed_crest_factor_db) if config.cfagc_enabled else 0.0
+    effective_blend_weight = blend_weight * blend_weight
+    if gain_peak < gain_rms and blend_weight > 0.0:
+        effective_blend_weight = peak_bias_weight(blend_weight)
+    if gain_rms > 1.0e-9 and gain_peak > 1.0e-9:
+        gain = math.exp((1.0 - effective_blend_weight) * math.log(gain_rms) +
+                        effective_blend_weight * math.log(gain_peak))
+    else:
+        gain = (1.0 - effective_blend_weight) * gain_rms + effective_blend_weight * gain_peak
+    state.cf_blend_weight = effective_blend_weight
+    if gain_peak < gain_rms and effective_blend_weight > 0.0:
+        state.headroom_limited = True
     gain = min(gain, config.max_gain)
     return max(gain, 0.0)
 
@@ -357,6 +432,7 @@ def process_file(input_path: Path, output_path: Path, target_rms_percent: int, m
     config.target_rms_fs = target_rms_percent / 100.0
     config.max_gain = db_to_linear(float(max_gain_db))
     config.gate_threshold = gate_threshold_percent / 100.0
+    config.limiter_threshold = limiter_threshold_fs(config.target_rms_fs)
 
     state = PipelineState(
         detector=DetectorState(),

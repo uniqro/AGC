@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGC WAV Debugger</title>
+  <link rel="stylesheet" href="./agc-debugger.css">
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <h1>AGC WAV Debugger</h1>
+        <p>Input WAV sec, tarayicida isleyip sinyali frame frame debug et.</p>
+      </div>
+      <div class="hero-actions">
+        <label class="file-button">
+          <input id="wavFile" type="file" accept=".wav,audio/wav">
+          Choose WAV
+        </label>
+        <button id="analyzeButton">Analyze</button>
+        <button id="downloadOutputButton" class="ghost" disabled>Download Output WAV</button>
+      </div>
+    </header>
+
+    <section class="panel status-panel">
+      <div id="statusBox">Hazir. WAV sec, parametreleri ayarla ve Analyze ile islemeyi baslat.</div>
+    </section>
+
+    <div class="layout">
+      <section class="left-column">
+        <section class="panel summary-grid">
+          <div class="card"><div class="label">Mode</div><div class="value" id="summaryMode">-</div></div>
+          <div class="card"><div class="label">Sample Rate</div><div class="value" id="summaryRate">-</div></div>
+          <div class="card"><div class="label">Target RMS</div><div class="value" id="summaryTarget">-</div></div>
+          <div class="card"><div class="label">Target Peak</div><div class="value" id="summaryPeak">-</div></div>
+          <div class="card"><div class="label">Limiter</div><div class="value" id="summaryLimiter">-</div></div>
+          <div class="card"><div class="label">Frames</div><div class="value" id="summaryFrames">-</div></div>
+        </section>
+
+        <section class="panel controls">
+          <div class="control-row">
+            <label for="modeSelect">Mode</label>
+            <select id="modeSelect">
+              <option value="am">AM</option>
+              <option value="digital">DIGITAL</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label for="targetRmsPercent">Target RMS</label>
+            <div>
+              <input id="targetRmsPercent" type="range" min="10" max="80" step="1" value="80">
+              <div class="subtle" id="targetRmsPercentValue">80%</div>
+            </div>
+          </div>
+          <div class="control-row">
+            <label for="maxGainDb">Max Gain</label>
+            <div>
+              <input id="maxGainDb" type="range" min="0" max="24" step="1" value="18">
+              <div class="subtle" id="maxGainDbValue">18 dB</div>
+            </div>
+          </div>
+          <div class="control-row">
+            <label for="gateThresholdPercent">Gate Threshold</label>
+            <div>
+              <input id="gateThresholdPercent" type="range" min="0" max="30" step="1" value="5">
+              <div class="subtle" id="gateThresholdPercentValue">5%</div>
+            </div>
+          </div>
+          <div class="control-row">
+            <label for="timeWindowMs">Signal window</label>
+            <select id="timeWindowMs">
+              <option value="10">10 ms</option>
+              <option value="50">50 ms</option>
+              <option value="100">100 ms</option>
+              <option value="250">250 ms</option>
+              <option value="500">500 ms</option>
+              <option value="1000">1 s</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label for="metricSelect">Metric timeline</label>
+            <select id="metricSelect">
+              <option value="smoothed_rms">Smoothed RMS</option>
+              <option value="envelope">Envelope</option>
+              <option value="desired_gain">Desired Gain</option>
+              <option value="applied_gain">Applied Gain</option>
+              <option value="crest_factor_db">Crest Factor</option>
+              <option value="smoothed_crest_factor_db">Smoothed Crest Factor</option>
+              <option value="cf_blend_weight">CF Blend Weight</option>
+              <option value="stage_output_peak">Output Peak</option>
+              <option value="stage_output_rms">Output RMS</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label>Filters</label>
+            <div class="filter-group">
+              <label class="inline-check"><input id="filterGate" type="checkbox" checked> Gate</label>
+              <label class="inline-check"><input id="filterHeadroom" type="checkbox" checked> Headroom</label>
+              <label class="inline-check"><input id="filterLimiter" type="checkbox" checked> Limiter</label>
+              <label class="inline-check"><input id="issueOnlyMode" type="checkbox"> Issue-only mode</label>
+            </div>
+          </div>
+          <div class="control-row">
+            <label for="frameRange">Frame</label>
+            <input id="frameRange" type="range" min="0" max="0" step="1" value="0">
+          </div>
+          <div class="control-row compact">
+            <button id="exportFrameButton" class="ghost" disabled>Export Frame JSON</button>
+            <div class="frame-readout">Selected frame export</div>
+            <div></div>
+          </div>
+        </section>
+
+        <section class="panel waveform-panel">
+          <div class="panel-header">
+            <h2>Decision Timeline</h2>
+            <div class="subtle" id="signalReadout">No data</div>
+          </div>
+          <div class="scope-block combined-metric-block">
+            <div class="panel-header inline-header">
+              <div>
+                <div class="scope-title">Metric View</div>
+                <div class="subtle" id="metricExplain">
+                  Metric: Smoothed RMS. Event marker'lari: yesil = gate open, sari = headroom limited, kirmizi = limiter active.
+                </div>
+              </div>
+              <div class="legend" id="eventLegend">
+                <span class="legend-item"><span class="legend-chip legend-gate"></span>Gate Open</span>
+                <span class="legend-item"><span class="legend-chip legend-headroom"></span>Headroom Limited</span>
+                <span class="legend-item"><span class="legend-chip legend-limiter"></span>Limiter Active</span>
+              </div>
+            </div>
+            <div class="metric-toolbar">
+              <div class="scope-title">Metric: <span id="metricLabel">Smoothed RMS</span></div>
+              <div class="metric-crest-strip">
+                <div class="metric-chip">
+                  <span class="metric-chip-label">Current Crest</span>
+                  <span class="metric-chip-value" id="currentCrestReadout">-</span>
+                </div>
+                <div class="metric-chip">
+                  <span class="metric-chip-label">Smoothed Crest</span>
+                  <span class="metric-chip-value" id="smoothedCrestReadout">-</span>
+                </div>
+              </div>
+            </div>
+            <canvas id="metricScope" width="1100" height="220"></canvas>
+          </div>
+          <div class="panel-header section-header">
+            <h2>Whole Signal</h2>
+            <div class="subtle">Input / output waveform with selected frame highlight</div>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Input</div>
+            <canvas id="inputScope" width="1100" height="180"></canvas>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Output</div>
+            <canvas id="outputScope" width="1100" height="180"></canvas>
+          </div>
+        </section>
+
+        <section class="panel frame-panel">
+          <div class="panel-header">
+            <h2>Selected Frame</h2>
+            <div class="subtle" id="frameTimeReadout">-</div>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Frame Input</div>
+            <canvas id="frameInputScope" width="1100" height="180"></canvas>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Frame Output</div>
+            <div class="subtle" id="frameOutputLegend">Guide lines: target peak and limiter threshold</div>
+            <canvas id="frameOutputScope" width="1100" height="180"></canvas>
+          </div>
+          <div class="frame-toolbar">
+            <button id="prevFrame" class="ghost">Prev Frame</button>
+            <div class="frame-readout" id="frameReadout">Frame -</div>
+            <button id="nextFrame" class="ghost">Next Frame</button>
+            <button id="prevLimiterFrame" class="ghost">Prev Limiter</button>
+            <div class="frame-readout" id="limiterFrameReadout">Limiter jump</div>
+            <button id="nextLimiterFrame" class="ghost">Next Limiter</button>
+            <button id="prevMetricPeak" class="ghost">Prev Metric Peak</button>
+            <div class="frame-readout" id="metricPeakReadout">Metric peak jump</div>
+            <button id="nextMetricPeak" class="ghost">Next Metric Peak</button>
+          </div>
+        </section>
+      </section>
+
+      <aside class="right-column">
+        <section class="panel inspector-panel">
+          <div class="inspector-block">
+            <div class="panel-header inline-header compact-header">
+              <h2>Frame Metrics</h2>
+              <div class="subtle">Selected frame values</div>
+            </div>
+            <div class="metric-grid compact-grid" id="metricGrid"></div>
+          </div>
+          <div class="inspector-block">
+            <div class="panel-header inline-header compact-header">
+              <h2>Stage Peaks</h2>
+              <div class="subtle">Peak flow across stages</div>
+            </div>
+            <div class="stage-grid compact-grid" id="stageGrid"></div>
+          </div>
+        </section>
+
+        <section class="panel decision-panel">
+          <h2>Decision Trace</h2>
+          <div class="formula-box">
+            <div class="formula-title">Desired Gain</div>
+            <div class="formula-text" id="desiredGainFormula">-</div>
+          </div>
+          <div class="formula-box">
+            <div class="formula-title">Applied Gain</div>
+            <div class="formula-text" id="appliedGainFormula">-</div>
+          </div>
+          <div id="decisionSummary" class="decision-summary"></div>
+          <ul id="decisionList" class="decision-list"></ul>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script src="./agc-wav-debugger.js"></script>
+</body>
+</html>

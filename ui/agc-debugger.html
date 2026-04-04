@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGC Signal Debugger</title>
+  <link rel="stylesheet" href="./agc-debugger.css">
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <h1>AGC Signal Debugger</h1>
+        <p>WAV zincirini yazılım debug eder gibi incelemek için offline analiz aracı.</p>
+      </div>
+      <div class="hero-actions">
+        <label class="file-button">
+          <input id="jsonFile" type="file" accept=".json,application/json">
+          Load Debug JSON
+        </label>
+      </div>
+    </header>
+
+    <section class="panel status-panel">
+      <div id="statusBox">Hazır. `agc_debug_export.py` ile üretilen JSON dosyasını yükle.</div>
+    </section>
+
+    <div class="layout">
+      <section class="left-column">
+        <section class="panel summary-grid">
+          <div class="card">
+            <div class="label">Mode</div>
+            <div class="value" id="summaryMode">-</div>
+          </div>
+          <div class="card">
+            <div class="label">Sample Rate</div>
+            <div class="value" id="summaryRate">-</div>
+          </div>
+          <div class="card">
+            <div class="label">Target RMS</div>
+            <div class="value" id="summaryTarget">-</div>
+          </div>
+          <div class="card">
+            <div class="label">Target Peak</div>
+            <div class="value" id="summaryPeak">-</div>
+          </div>
+          <div class="card">
+            <div class="label">Limiter</div>
+            <div class="value" id="summaryLimiter">-</div>
+          </div>
+          <div class="card">
+            <div class="label">Frames</div>
+            <div class="value" id="summaryFrames">-</div>
+          </div>
+        </section>
+
+        <section class="panel controls">
+          <div class="control-row">
+            <label for="timeWindowMs">Signal window</label>
+            <select id="timeWindowMs">
+              <option value="10">10 ms</option>
+              <option value="50">50 ms</option>
+              <option value="100">100 ms</option>
+              <option value="250">250 ms</option>
+              <option value="500">500 ms</option>
+              <option value="1000">1 s</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label for="metricSelect">Metric timeline</label>
+            <select id="metricSelect">
+              <option value="smoothed_rms">Smoothed RMS</option>
+              <option value="envelope">Envelope</option>
+              <option value="desired_gain">Desired Gain</option>
+              <option value="applied_gain">Applied Gain</option>
+              <option value="crest_factor_db">Crest Factor</option>
+              <option value="smoothed_crest_factor_db">Smoothed Crest Factor</option>
+              <option value="cf_blend_weight">CF Blend Weight</option>
+              <option value="stage_output_peak">Output Peak</option>
+              <option value="stage_output_rms">Output RMS</option>
+            </select>
+          </div>
+          <div class="control-row">
+            <label for="frameRange">Frame</label>
+            <input id="frameRange" type="range" min="0" max="0" step="1" value="0">
+          </div>
+          <div class="control-row compact">
+            <button id="prevFrame" class="ghost">Prev</button>
+            <div class="frame-readout" id="frameReadout">Frame -</div>
+            <button id="nextFrame" class="ghost">Next</button>
+          </div>
+        </section>
+
+        <section class="panel waveform-panel">
+          <div class="panel-header">
+            <h2>Whole Signal</h2>
+            <div class="subtle" id="signalReadout">No data</div>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Input</div>
+            <canvas id="inputScope" width="1100" height="180"></canvas>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Output</div>
+            <canvas id="outputScope" width="1100" height="180"></canvas>
+          </div>
+        </section>
+
+        <section class="panel metric-panel">
+          <div class="panel-header">
+            <h2>Decision Timeline</h2>
+            <div class="subtle">Seçili metric ve event marker’ları</div>
+          </div>
+          <canvas id="metricScope" width="1100" height="220"></canvas>
+        </section>
+
+        <section class="panel frame-panel">
+          <div class="panel-header">
+            <h2>Selected Frame</h2>
+            <div class="subtle" id="frameTimeReadout">-</div>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Frame Input</div>
+            <canvas id="frameInputScope" width="1100" height="180"></canvas>
+          </div>
+          <div class="scope-block">
+            <div class="scope-title">Frame Output</div>
+            <canvas id="frameOutputScope" width="1100" height="180"></canvas>
+          </div>
+        </section>
+      </section>
+
+      <aside class="right-column">
+        <section class="panel metrics-panel">
+          <h2>Frame Metrics</h2>
+          <div class="metric-grid" id="metricGrid"></div>
+        </section>
+
+        <section class="panel decision-panel">
+          <h2>Decision Trace</h2>
+          <div id="decisionSummary" class="decision-summary"></div>
+          <ul id="decisionList" class="decision-list"></ul>
+        </section>
+
+        <section class="panel stage-panel">
+          <h2>Stage Peaks</h2>
+          <div class="stage-grid" id="stageGrid"></div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script src="./agc-debugger.js"></script>
+</body>
+</html>

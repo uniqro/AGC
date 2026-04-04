@@ -46,14 +46,15 @@ Bu yorum `DIGITAL` mod ile ayni kalir. Fark, bu hedefe nasil ulasildigindadir.
 Bu preset'in temel mantigi:
 
 - AGC ortalama seviyeyi yukari tasimaya calisir
-- peak bolgelerde erken ve kaba frame-level fren yerine compressor once devreye girer
+- peak bolgelerde `CFAGC` gain planning devreye girer
+- compressor kodda kalsa da bu asamada pasiftir
 - final limiter yalniz son emniyet olarak kalir
 
 ## Beklenen Davranis
 
 - `%80` gibi yuksek hedeflerde ortalama seviyeyi yukariya tasimaya daha isteklidir
 - peak'ler `~%100`e kadar cikabilir
-- peak protector yerine compressor ve son koruma agirligi artar
+- peak protector yerine `CFAGC` ve son koruma agirligi artar
 - sayisal olarak limiter hala gorulebilir, ancak amac onun zorunlu durumlar disinda baskin olmamasidir
 
 ## Bilinen Risk
@@ -62,6 +63,7 @@ Bu preset'in temel mantigi:
 - Final limiter yine de devreye girerse peak bolgelerde lineerlik sorunu tamamen kaybolmayabilir
 - `%80` hedefi her sinyalde birebir saglanamayabilir; crest factor yuksek sinyallerde hala trade-off vardir
 - `compressor_threshold_dbfs` cok yukarida secilirse (`-1 dBFS` gibi), ortalama seviye bir miktar artsa da limiter yukunde ciddi artis olabilir
+- salt `CFAGC` gain planning, compressor destegi olmadan bazi sicak sinyallerde limiter yukunu yeterince dusurmeyebilir
 
 ## Sonuc
 

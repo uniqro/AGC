@@ -24,6 +24,12 @@ typedef struct AgcConfig {
     float gate_threshold;
     float max_gain;
     float gain_headroom_margin;
+    int cfagc_enabled;
+    float cf_low_db;
+    float cf_high_db;
+    float cf_rise_ms;
+    float cf_fall_ms;
+    float rms_activity_floor;
     int peak_headroom_cap_enabled;
     int compressor_enabled;
     float compressor_threshold_dbfs;
@@ -43,5 +49,7 @@ typedef struct AgcConfig {
 AgcConfig agc_config_default(int32_t sample_rate_hz);
 AgcConfig agc_config_preset(int32_t sample_rate_hz, AgcMode mode);
 const char *agc_mode_name(AgcMode mode);
+float agc_target_peak_fs(const AgcConfig *config);
+float agc_limiter_threshold_fs(const AgcConfig *config);
 
 #endif

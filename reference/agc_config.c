@@ -1,5 +1,13 @@
 #include "agc_config.h"
 
+float agc_target_peak_fs(const AgcConfig *config) {
+    return config->target_rms_fs + (1.0f - config->target_rms_fs) * 0.4f;
+}
+
+float agc_limiter_threshold_fs(const AgcConfig *config) {
+    return config->target_rms_fs + (1.0f - config->target_rms_fs) * 0.9f;
+}
+
 const char *agc_mode_name(AgcMode mode) {
     switch (mode) {
         case AGC_MODE_AM:
@@ -29,14 +37,20 @@ AgcConfig agc_config_preset(int32_t sample_rate_hz, AgcMode mode) {
     config.gate_threshold = 0.05f;
     config.max_gain = 4.0f;
     config.gain_headroom_margin = 1.00f;
+    config.cfagc_enabled = 1;
+    config.cf_low_db = 6.0f;
+    config.cf_high_db = 10.5f;
+    config.cf_rise_ms = 8.0f;
+    config.cf_fall_ms = 40.0f;
+    config.rms_activity_floor = 0.05f;
     config.peak_headroom_cap_enabled = 0;
-    config.compressor_enabled = 1;
+    config.compressor_enabled = 0;
     config.compressor_threshold_dbfs = -2.0f;
     config.compressor_ratio = 6.0f;
     config.compressor_knee_db = 8.0f;
     config.peak_protector_enabled = 0;
     config.peak_protector_ratio = 1.00f;
-    config.limiter_threshold = 0.995f;
+    config.limiter_threshold = agc_limiter_threshold_fs(&config);
 
     config.hp_cutoff_hz = 250.0f;
     config.lp_cutoff_ratio = 0.4125f;
@@ -49,20 +63,32 @@ AgcConfig agc_config_preset(int32_t sample_rate_hz, AgcMode mode) {
             config.attack_ms = 8.0f;
             config.release_ms = 300.0f;
             config.gate_hold_ms = 80.0f;
-            config.compressor_enabled = 1;
+            config.cfagc_enabled = 1;
+            config.cf_low_db = 6.0f;
+            config.cf_high_db = 10.5f;
+            config.cf_rise_ms = 8.0f;
+            config.cf_fall_ms = 40.0f;
+            config.rms_activity_floor = 0.05f;
+            config.compressor_enabled = 0;
             config.compressor_threshold_dbfs = -2.0f;
             config.compressor_ratio = 6.0f;
             config.compressor_knee_db = 8.0f;
             config.peak_headroom_cap_enabled = 0;
             config.peak_protector_enabled = 0;
             config.peak_protector_ratio = 1.00f;
-            config.limiter_threshold = 0.995f;
+            config.limiter_threshold = agc_limiter_threshold_fs(&config);
             break;
 
         case AGC_MODE_DIGITAL:
             config.attack_ms = 10.0f;
             config.release_ms = 350.0f;
             config.gate_hold_ms = 80.0f;
+            config.cfagc_enabled = 1;
+            config.cf_low_db = 6.0f;
+            config.cf_high_db = 10.5f;
+            config.cf_rise_ms = 8.0f;
+            config.cf_fall_ms = 40.0f;
+            config.rms_activity_floor = 0.05f;
             config.compressor_enabled = 1;
             config.compressor_threshold_dbfs = -4.0f;
             config.compressor_ratio = 3.0f;
@@ -70,7 +96,7 @@ AgcConfig agc_config_preset(int32_t sample_rate_hz, AgcMode mode) {
             config.peak_headroom_cap_enabled = 1;
             config.peak_protector_enabled = 0;
             config.peak_protector_ratio = 1.00f;
-            config.limiter_threshold = 0.990f;
+            config.limiter_threshold = agc_limiter_threshold_fs(&config);
             break;
 
         default:
