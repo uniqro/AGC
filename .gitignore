@@ -3,3 +3,5 @@
 /reference_*.wav
 /agc_output_*.wav
 /tools/*.exe
+__pycache__/
+*.pyc
