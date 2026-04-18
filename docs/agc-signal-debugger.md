@@ -76,7 +76,7 @@ python .\tools\agc_debug_export.py `
 - Decision Timeline:
   - secilen metrik
   - secili frame icin `Current Crest` ve `Smoothed Crest` hizli okumalari
-  - `gate`, `headroom_limited`, `limiter_active` marker'lari
+  - `gate`, `headroom_limited`, `limiter_active`, `attack`, `release` marker'lari
   - metric aciklamasi
   - chip tabanli legend
   - sari golgelendirme ile `headroom_limited` cluster'lari
@@ -91,6 +91,11 @@ python .\tools\agc_debug_export.py `
 - Decision Trace:
   - `desired_gain` formulu
   - `applied_gain` smoothing formulu
+  - secili frame icin:
+    - onceki gain
+    - secilen `attack/release` modu
+    - kullanilan `alpha`
+    - formülun sayisal acilimi
 - Frame Metrics:
   - sticky ve daha kompakt inspector icinde gorunur
   - `envelope`
@@ -122,3 +127,5 @@ python .\tools\agc_debug_export.py `
   - yesil = `gate_open`
   - sari = `headroom_limited`
   - kirmizi = `limiter_active`
+  - mavi = `attack`
+  - mor = `release`

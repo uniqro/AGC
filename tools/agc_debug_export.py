@@ -76,7 +76,11 @@ def export_debug(input_path: Path,
         gate_open = update_gate(level_info, state.gate, config)
         desired_gain = compute_desired_gain(level_info, gate_open, state.gain, config)
         fast_rise = (not previous_gate_open) and gate_open and desired_gain > state.gain.applied_gain
+        previous_applied_gain = state.gain.applied_gain
         applied_gain = smooth_gain(desired_gain, fast_rise, state.gain, config)
+        gain_smoothing_mode = "attack" if (desired_gain < previous_applied_gain or (fast_rise and desired_gain > previous_applied_gain)) else "release"
+        tau_ms = config.attack_ms if gain_smoothing_mode == "attack" else config.release_ms
+        gain_smoothing_alpha = 1.0 - math.exp(-(config.frame_ms * 0.001) / (tau_ms * 0.001)) if tau_ms > 1.0e-6 else 1.0
 
         gained = apply_gain(padded_input, applied_gain, state.gain)
         after_gain = gained[:]
@@ -109,6 +113,10 @@ def export_debug(input_path: Path,
             "gate_hold_frames_remaining": int(state.gate.hold_frames_remaining),
             "desired_gain": round(desired_gain, 6),
             "applied_gain": round(applied_gain, 6),
+            "previous_applied_gain": round(previous_applied_gain, 6),
+            "gain_smoothing_alpha": round(gain_smoothing_alpha, 6),
+            "gain_smoothing_mode": gain_smoothing_mode,
+            "gain_fast_rise": fast_rise,
             "cf_blend_weight": round(state.gain.cf_blend_weight, 6),
             "headroom_limited": state.gain.headroom_limited,
             "overflow_detected": state.gain.overflow_detected,

@@ -29,7 +29,7 @@ AgcConfig agc_config_preset(int32_t sample_rate_hz, AgcMode mode) {
 
     config.target_rms_fs = 0.42f;
     config.attack_ms = 8.0f;
-    config.release_ms = 300.0f;
+    config.release_ms = 150.0f;
     config.envelope_window_ms = 4.0f;
     config.rms_window_ms = 8.0f;
     config.gate_hold_ms = 80.0f;
@@ -61,7 +61,7 @@ AgcConfig agc_config_preset(int32_t sample_rate_hz, AgcMode mode) {
     switch (mode) {
         case AGC_MODE_AM:
             config.attack_ms = 8.0f;
-            config.release_ms = 300.0f;
+            config.release_ms = 150.0f;
             config.gate_hold_ms = 80.0f;
             config.cfagc_enabled = 1;
             config.cf_low_db = 6.0f;

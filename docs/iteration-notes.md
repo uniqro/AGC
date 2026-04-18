@@ -2051,6 +2051,69 @@ Bu dosya, iterasyon bazli calisma notlarini ve ozetleri tutar.
 ### Sonraki Adim
 - Sonraki arayis, tum headroom-limited frame'lerde degil yalniz daha yuksek crest-factor bolgelerinde etkinlesen kosullu peak bias yoni olacak.
 
+## Iteration 094 - Kosullu Peak-Biased Blend
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- Peak-biased blend tum `headroom-limited` frame'lerde tam guclenmek yerine, yalniz daha yuksek crest-factor bandinda guclenecek sekilde kosullandi.
+- `peak_bias_low_db = 8.5`, `peak_bias_high_db = 10.5` ile yeni ara davranis denendi.
+- Sonuclar `v16` batch kosusu ile olculdu.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v16.md`
+
+### Ozet
+- `v14`e gore RMS anlamli bicimde geri kazanildi.
+- Limiter yukunde de buna paralel bir geri artis oldu.
+- Sonuc, `v13` ile `v14` arasinda daha dengeli bir ara nokta verdi.
+
+### Sonraki Adim
+- Bu dengenin dinleme ve waveform tarafinda tatmin edici olup olmadigini kontrol etmek; gerekirse kosullu peak bias bandi veya threshold'lari uzerinden ince tuning yapmak.
+
+## Iteration 095 - Release Suresini 100 ms'e Cekme
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `AM` preset icinde `release_ms = 100` yapildi.
+- Reference C, Python batch araci ve WAV debugger ayni degere hizalandi.
+- Sonuclar `v17` batch kosusu ile olculdu.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v17.md`
+
+### Ozet
+- Daha hizli `release`, `v14`e gore RMS'i belirgin bicimde yukari tasidi.
+- Limiter yukunde de buna paralel belirgin bir artis olustu.
+- Sonuc, `v14`ten daha sicak ama daha zorlanan bir ara aday verdi.
+
+### Sonraki Adim
+- Dinleme ve debugger incelemesiyle `v14` ile `v17` arasindaki pratik farki degerlendirmek; gerekirse `release_ms` icin arada bir deger denemek.
+
+## Iteration 096 - Release Suresini 150 ms'e Alma
+
+### Tarih
+- 2026-04-04
+
+### Bu iterasyonda yapilanlar
+- `release_ms = 150` denemesi yapildi.
+- Reference C, Python batch araci ve WAV debugger ayni degere hizalandi.
+- Sonuclar `v18` batch kosusu ile olculdu.
+
+### Uretilen Dokuman
+- `docs/agc-test-wav-batch-results-v18.md`
+
+### Ozet
+- `150 ms`, `v14` ile `v17` arasinda beklenen orta noktayi verdi.
+- RMS toparlanmasi saglarken limiter yukundeki artis da `100 ms` kadar yuksek olmadi.
+- Bu nedenle `150 ms` su an dengeli bir aday olarak gorunuyor.
+
+### Sonraki Adim
+- Dinleme ve debugger uzerinden `v14` ile `v18` karsilastirmasi yapip hangi yapiyi yeni calisma tabani yapacagimiza karar vermek.
+
 ## Iteration 088 - Crest Smoothing Activity Floor Batch Sonuclari
 
 ### Tarih

@@ -20,6 +20,7 @@ Bu nokta bilerek su dengeyi korur:
 - `DIGITAL` preset daha sonra ele alinacaktir
 - `compressor` kodda vardir ama `AM` modunda pasiftir
 - `CFAGC` etkindir
+- Bu freeze sonrasi yeni iterasyonlarda `release_ms` gibi parametreler yeniden ayarlanabilir; asagidaki maddeler freeze aninin referans davranisini temsil eder
 - `smoothed crest factor` asimetrik guncellenir:
   - `cf_rise_ms = 8`
   - `cf_fall_ms = 40`

@@ -27,7 +27,7 @@ Bu yorum `DIGITAL` mod ile ayni kalir. Fark, bu hedefe nasil ulasildigindadir.
 - `mode = AM`
 - `frame_ms = 4`
 - `attack_ms = 8`
-- `release_ms = 300`
+- `release_ms = 150`
 - `envelope_window_ms = 4`
 - `rms_window_ms = 8`
 - `gate_hold_ms = 80`

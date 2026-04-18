@@ -117,7 +117,7 @@ def agc_config_preset(sample_rate_hz: int, mode: str) -> AgcConfig:
         frame_samples=(sample_rate_hz * frame_ms) // 1000,
         target_rms_fs=0.42,
         attack_ms=8.0,
-        release_ms=300.0,
+        release_ms=150.0,
         envelope_window_ms=4.0,
         rms_window_ms=8.0,
         gate_hold_ms=80.0,
@@ -275,6 +275,13 @@ def peak_bias_weight(blend_weight: float) -> float:
     return 1.0 - keep_rms * keep_rms * keep_rms * keep_rms
 
 
+def effective_target_peak_fs(config: AgcConfig, smoothed_crest_factor_db: float) -> float:
+    target_peak = target_peak_fs(config.target_rms_fs)
+    low_crest_target_peak = config.target_rms_fs + (target_peak - config.target_rms_fs) * 0.25
+    high_crest_mix = smoothstep(config.cf_low_db, config.cf_high_db, smoothed_crest_factor_db)
+    return low_crest_target_peak + high_crest_mix * (target_peak - low_crest_target_peak)
+
+
 def compute_desired_gain(level_info, gate_open: bool, state: GainState, config: AgcConfig) -> float:
     state.headroom_limited = False
     state.crest_smoothing_active = False
@@ -305,6 +312,7 @@ def compute_desired_gain(level_info, gate_open: bool, state: GainState, config: 
     effective_blend_weight = blend_weight * blend_weight
     if gain_peak < gain_rms and blend_weight > 0.0:
         effective_blend_weight = peak_bias_weight(blend_weight)
+    gain_peak = effective_target_peak_fs(config, state.smoothed_crest_factor_db) / level_info["input_peak"] if level_info["input_peak"] > 1.0e-6 else config.max_gain
     if gain_rms > 1.0e-9 and gain_peak > 1.0e-9:
         gain = math.exp((1.0 - effective_blend_weight) * math.log(gain_rms) +
                         effective_blend_weight * math.log(gain_peak))

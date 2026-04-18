@@ -64,6 +64,13 @@ function targetPeakFs(targetLevel) {
   return targetLevel + (1.0 - targetLevel) * 0.4;
 }
 
+function effectiveTargetPeakFs(targetLevel, smoothedCrestFactorDb, cfLowDb, cfHighDb) {
+  const targetPeak = targetPeakFs(targetLevel);
+  const lowCrestTargetPeak = targetLevel + (targetPeak - targetLevel) * 0.25;
+  const highCrestMix = smoothstep(cfLowDb, cfHighDb, smoothedCrestFactorDb);
+  return lowCrestTargetPeak + highCrestMix * (targetPeak - lowCrestTargetPeak);
+}
+
 function limiterThresholdFs(targetLevel) {
   return targetLevel + (1.0 - targetLevel) * 0.9;
 }
@@ -131,7 +138,7 @@ function agcConfigPreset(sampleRate, mode) {
     frameSamples: Math.max(1, Math.round(sampleRate * frameMs / 1000)),
     targetRmsFs,
     attackMs: 8.0,
-    releaseMs: 300.0,
+    releaseMs: 150.0,
     envelopeWindowMs: 4.0,
     rmsWindowMs: 8.0,
     gateHoldMs: 80.0,
@@ -233,29 +240,44 @@ function computeDesiredGain(levelInfo, gateOpen, gainState, config) {
     gainState.smoothedCrestFactorDb += cfAlpha * (crestFactorDb - gainState.smoothedCrestFactorDb);
   }
   const blendWeight = config.cfagcEnabled ? smoothstep(config.cfLowDb, config.cfHighDb, gainState.smoothedCrestFactorDb) : 0.0;
+  const effectiveTargetPeak = effectiveTargetPeakFs(
+    config.targetRmsFs,
+    gainState.smoothedCrestFactorDb,
+    config.cfLowDb,
+    config.cfHighDb
+  );
+  const adjustedGainPeak = levelInfo.inputPeak > 1.0e-6 ? effectiveTargetPeak / levelInfo.inputPeak : config.maxGain;
   let effectiveBlendWeight = blendWeight * blendWeight;
-  if (gainPeak < gainRms && blendWeight > 0.0) {
+  if (adjustedGainPeak < gainRms && blendWeight > 0.0) {
     effectiveBlendWeight = peakBiasWeight(blendWeight);
   }
   let gain;
-  if (gainRms > 1.0e-9 && gainPeak > 1.0e-9) {
-    gain = Math.exp((1.0 - effectiveBlendWeight) * Math.log(gainRms) + effectiveBlendWeight * Math.log(gainPeak));
+  if (gainRms > 1.0e-9 && adjustedGainPeak > 1.0e-9) {
+    gain = Math.exp((1.0 - effectiveBlendWeight) * Math.log(gainRms) + effectiveBlendWeight * Math.log(adjustedGainPeak));
   } else {
-    gain = (1.0 - effectiveBlendWeight) * gainRms + effectiveBlendWeight * gainPeak;
+    gain = (1.0 - effectiveBlendWeight) * gainRms + effectiveBlendWeight * adjustedGainPeak;
   }
   gainState.cfBlendWeight = effectiveBlendWeight;
-  if (gainPeak < gainRms && effectiveBlendWeight > 0.0) {
+  gainState.gainPeak = adjustedGainPeak;
+  gainState.effectiveTargetPeak = effectiveTargetPeak;
+  if (adjustedGainPeak < gainRms && effectiveBlendWeight > 0.0) {
     gainState.headroomLimited = true;
   }
   return clamp(gain, 0.0, config.maxGain);
 }
 
 function smoothGain(desiredGain, fastRise, gainState, config) {
-  const alpha = (desiredGain < gainState.appliedGain || (fastRise && desiredGain > gainState.appliedGain))
+  const previousAppliedGain = gainState.appliedGain;
+  const useAttack = desiredGain < previousAppliedGain || (fastRise && desiredGain > previousAppliedGain);
+  const alpha = useAttack
     ? timeConstantToAlpha(config.attackMs, config.frameMs)
     : timeConstantToAlpha(config.releaseMs, config.frameMs);
   gainState.desiredGain = desiredGain;
-  gainState.appliedGain += alpha * (desiredGain - gainState.appliedGain);
+  gainState.previousAppliedGain = previousAppliedGain;
+  gainState.lastAlpha = alpha;
+  gainState.lastSmoothingMode = useAttack ? "attack" : "release";
+  gainState.lastFastRise = fastRise;
+  gainState.appliedGain = previousAppliedGain + alpha * (desiredGain - previousAppliedGain);
   return gainState.appliedGain;
 }
 
@@ -422,9 +444,15 @@ function processSamples(samples, sampleRate, fileName) {
     currentCrestFactorDb: 0.0,
     desiredGain: 1.0,
     appliedGain: 1.0,
+    previousAppliedGain: 1.0,
     smoothedCrestFactorDb: 0.0,
     cfBlendWeight: 0.0,
     crestSmoothingActive: false,
+    gainPeak: 1.0,
+    effectiveTargetPeak: 0.0,
+    lastAlpha: 0.0,
+    lastSmoothingMode: "release",
+    lastFastRise: false,
     headroomLimited: false,
     overflowDetected: false,
   };
@@ -474,6 +502,12 @@ function processSamples(samples, sampleRate, fileName) {
       gate_hold_frames_remaining: gateState.holdFramesRemaining,
       desired_gain: Number(desiredGain.toFixed(6)),
       applied_gain: Number(appliedGain.toFixed(6)),
+      previous_applied_gain: Number(gainState.previousAppliedGain.toFixed(6)),
+      gain_smoothing_alpha: Number(gainState.lastAlpha.toFixed(6)),
+      gain_smoothing_mode: gainState.lastSmoothingMode,
+      gain_fast_rise: gainState.lastFastRise,
+      gain_peak: Number(gainState.gainPeak.toFixed(6)),
+      effective_target_peak: Number(gainState.effectiveTargetPeak.toFixed(6)),
       cf_blend_weight: Number(gainState.cfBlendWeight.toFixed(6)),
       headroom_limited: gainState.headroomLimited,
       overflow_detected: gainState.overflowDetected,
@@ -675,6 +709,13 @@ function drawMetric(canvas, frames, key, selectedIndex) {
   ctx.stroke();
   frames.forEach((frame, index) => {
     const x = (index / Math.max(frames.length - 1, 1)) * width;
+    if (frame.gain_smoothing_mode === "attack") {
+      ctx.fillStyle = "rgba(105,168,255,0.55)";
+      ctx.fillRect(x - 1, Math.floor(height * 0.18), 2, 18);
+    } else if (frame.gain_smoothing_mode === "release") {
+      ctx.fillStyle = "rgba(199,151,255,0.35)";
+      ctx.fillRect(x - 1, Math.floor(height * 0.18), 2, 12);
+    }
     if (showLimiter && frame.limiter_active) {
       ctx.fillStyle = "rgba(255,125,125,0.8)";
       ctx.fillRect(x - 1, height - 18, 2, 18);
@@ -734,7 +775,7 @@ function updateMetricExplanation() {
     stage_output_rms: "Output RMS",
   }[state.metricKey] || state.metricKey;
   ui.metricExplain.textContent =
-    `${metricDescriptions[state.metricKey] || "Metric aciklamasi yok."} Event marker'lari: yesil = gate open, sari = headroom limited, kirmizi = limiter active. Sari golgeler headroom-limited cluster'lari, kirmizi golgeler limiter cluster bolgelerini gosterir.`;
+    `${metricDescriptions[state.metricKey] || "Metric aciklamasi yok."} Event marker'lari: yesil = gate open, sari = headroom limited, kirmizi = limiter active, mavi = attack frame, mor = release frame. Sari golgeler headroom-limited cluster'lari, kirmizi golgeler limiter cluster bolgelerini gosterir.`;
 }
 
 function renderMetricGrid(frame) {
@@ -747,6 +788,8 @@ function renderMetricGrid(frame) {
     ["Smoothed Crest", `${formatNumber(frame.smoothed_crest_factor_db, 2)} dB`],
     ["Desired Gain", `${formatNumber(frame.desired_gain, 3)}x`],
     ["Applied Gain", `${formatNumber(frame.applied_gain, 3)}x`],
+    ["Gain Peak", `${formatNumber(frame.gain_peak, 3)}x`],
+    ["Gain Mode", frame.gain_smoothing_mode],
     ["CF Blend", formatNumber(frame.cf_blend_weight, 3)],
     ["CF Update", frame.crest_smoothing_active ? "active" : "held"],
     ["Gate", frame.gate_open ? "open" : "closed"],
@@ -802,6 +845,7 @@ function renderDecision(frame, debug) {
     ? `Crest smoothing aktif. Smoothed RMS ${formatNumber(frame.smoothed_rms)} activity floor ${formatNumber(debug.config.rms_activity_floor)} ustunde.`
     : `Crest smoothing tutuldu. Smoothed RMS ${formatNumber(frame.smoothed_rms)} activity floor ${formatNumber(debug.config.rms_activity_floor)} altinda veya gate kapali.`);
   bullets.push(`Desired gain ${formatNumber(frame.desired_gain, 3)}x, applied gain ${formatNumber(frame.applied_gain, 3)}x.`);
+  bullets.push(`Applied gain smoothing modu ${frame.gain_smoothing_mode}; alpha ${formatNumber(frame.gain_smoothing_alpha, 4)} ve previous gain ${formatNumber(frame.previous_applied_gain, 3)}x.`);
   bullets.push(frame.headroom_limited
     ? `Peak-aware yol RMS yolundan daha kisitlayici oldu. Target peak ${formatNumber(debug.metadata.target_peak)} devrede.`
     : "Bu frame'de gain karari daha cok RMS tarafindan surukleniyor.");
@@ -819,13 +863,16 @@ function renderDecision(frame, debug) {
 
   ui.desiredGainFormula.textContent =
     `gain_rms = target_rms / smoothed_rms = ${formatNumber(debug.config.target_rms_fs)} / ${formatNumber(frame.smoothed_rms)} = ${formatNumber(debug.config.target_rms_fs / Math.max(frame.smoothed_rms, 1.0e-9))} | ` +
-    `gain_peak = target_peak / input_peak = ${formatNumber(debug.metadata.target_peak)} / ${formatNumber(frame.input_peak)} = ${formatNumber(debug.metadata.target_peak / Math.max(frame.input_peak, 1.0e-9))} | ` +
+    `effective_target_peak = ${formatNumber(frame.effective_target_peak)} | ` +
+    `gain_peak = effective_target_peak / input_peak = ${formatNumber(frame.effective_target_peak)} / ${formatNumber(frame.input_peak)} = ${formatNumber(frame.gain_peak)} | ` +
     `desired_gain = blend_log(gain_rms, gain_peak, cf_blend=${formatNumber(frame.cf_blend_weight)}) = ${formatNumber(frame.desired_gain)}`;
 
   ui.appliedGainFormula.textContent =
-    `applied_gain[n] = applied_gain[n-1] + alpha * (desired_gain - applied_gain[n-1]) | ` +
-    `desired = ${formatNumber(frame.desired_gain)} | applied = ${formatNumber(frame.applied_gain)} | ` +
-    `attack/release = ${formatNumber(debug.config.attack_ms, 1)} ms / ${formatNumber(debug.config.release_ms, 1)} ms`;
+    `alpha = 1 - exp(-dt / tau), dt = ${formatNumber(debug.metadata.frame_ms, 1)} ms, ` +
+    `tau = ${frame.gain_smoothing_mode === "attack" ? formatNumber(debug.config.attack_ms, 1) : formatNumber(debug.config.release_ms, 1)} ms (${frame.gain_smoothing_mode}) | ` +
+    `alpha = ${formatNumber(frame.gain_smoothing_alpha, 4)} | ` +
+    `applied_gain[n] = prev + alpha * (desired - prev) = ${formatNumber(frame.previous_applied_gain)} + ${formatNumber(frame.gain_smoothing_alpha, 4)} * (${formatNumber(frame.desired_gain)} - ${formatNumber(frame.previous_applied_gain)}) = ${formatNumber(frame.applied_gain)} | ` +
+    `fast_rise = ${frame.gain_fast_rise ? "true" : "false"}`;
 }
 
 function updateSummary(debug) {

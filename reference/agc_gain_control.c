@@ -44,6 +44,23 @@ static float agc_peak_bias_weight(float blend_weight) {
     return 1.0f - keep_rms * keep_rms * keep_rms * keep_rms;
 }
 
+static float agc_effective_target_peak_fs(const AgcConfig *config,
+                                          float smoothed_crest_factor_db) {
+    float target_peak = agc_target_peak_fs(config);
+    float low_crest_target_peak;
+    float high_crest_mix;
+
+    /* Low-crest steady signals should not use the same peak target as
+     * high-crest speech-like material. Pull the peak target closer to the
+     * RMS target when crest factor stays low. */
+    low_crest_target_peak =
+        config->target_rms_fs + (target_peak - config->target_rms_fs) * 0.25f;
+    high_crest_mix = agc_smoothstep(config->cf_low_db, config->cf_high_db,
+                                    smoothed_crest_factor_db);
+    return low_crest_target_peak
+         + high_crest_mix * (target_peak - low_crest_target_peak);
+}
+
 void agc_gain_init(GainState *state) {
     memset(state, 0, sizeof(*state));
     state->applied_gain = 1.0f;
@@ -59,6 +76,7 @@ float agc_compute_desired_gain(const LevelInfo *level_info,
     float gain_peak;
     float gain;
     float target_peak = agc_target_peak_fs(config);
+    float effective_target_peak = target_peak;
     float crest_factor_db = 0.0f;
     float cf_alpha = 0.0f;
     float blend_weight = 0.0f;
@@ -101,6 +119,11 @@ float agc_compute_desired_gain(const LevelInfo *level_info,
         blend_weight = agc_smoothstep(config->cf_low_db,
                                       config->cf_high_db,
                                       state->smoothed_crest_factor_db);
+    }
+    effective_target_peak = agc_effective_target_peak_fs(
+        config, state->smoothed_crest_factor_db);
+    if (level_info->input_peak > 1.0e-6f) {
+        gain_peak = effective_target_peak / level_info->input_peak;
     }
 
     /* Keep RMS-dominant behavior in low/mid CF frames, but blend in log-gain

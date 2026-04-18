@@ -266,6 +266,14 @@ input[type="range"] {
   background: rgba(255, 125, 125, 0.95);
 }
 
+.legend-attack {
+  background: rgba(105, 168, 255, 0.95);
+}
+
+.legend-release {
+  background: rgba(199, 151, 255, 0.95);
+}
+
 .combined-metric-block {
   margin-top: 14px;
 }
